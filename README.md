@@ -165,3 +165,8 @@ The engine is modular on purpose. To add a pre-money SAFE, a priced round, or a 
 discount-versus-cap comparison, add a branch in `src/calc/safe.ts` keyed off
 `ScenarioInputs.safe.safeType` and extend `SafeResults` — the UI reads only the result fields, so
 nothing else has to change. Add the corresponding tests next to `safe.test.ts`.
+
+## License
+
+MIT — see [LICENSE](LICENSE). It is a planning calculator, not legal, tax or accounting advice, and
+it comes with no warranty; the model's simplifications are listed above and in the app itself.
