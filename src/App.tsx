@@ -13,6 +13,7 @@ import { ResultsRail } from './components/ResultsRail'
 import { RoundSection } from './components/RoundSection'
 import { ScenarioTable } from './components/ScenarioTable'
 import { ScenarioTabs } from './components/ScenarioTabs'
+import { ReplacedPlanNotice, SavePlan } from './components/SavePlan'
 import { SCENARIO_ORDER } from './calc/defaults'
 
 export function App() {
@@ -60,6 +61,8 @@ export function App() {
           }
         />
 
+        <ReplacedPlanNotice store={store} />
+
         {store.changedElsewhere && (
           <div className="mt-4">
             <Banner tone="warn">
@@ -101,7 +104,12 @@ export function App() {
 
         <Assumptions results={results} />
 
-        <div className="mt-6 flex items-baseline justify-between gap-6">
+        <div className="mt-8 pt-5" style={{ borderTop: '1px solid var(--color-hairline)' }}>
+          <div className="t-eyebrow mb-3">Keeping this plan</div>
+          <SavePlan store={store} />
+        </div>
+
+        <div className="mt-8 flex items-baseline justify-between gap-6">
           <p className="t-small max-w-[62ch]">
             {store.showBenchmarks && <>{BENCHMARK_DISCLAIMER} </>}
             Press <span className="num">1</span>/<span className="num">2</span>/

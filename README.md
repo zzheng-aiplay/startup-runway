@@ -126,13 +126,29 @@ way in that window: post-money caps (pre-seed medians are now $10M–$18M, not $
 cost of a US hire (25–35% over base salary, which is why the seeded payroll load is 25%). They live
 in `src/calc/benchmarks.ts` as plain strings — edit them freely if your market says otherwise.
 
-## Saved plans
+## Saving a plan — three ways, no server
 
-Your inputs are written to `localStorage` on every change and rebuilt field-by-field on load, over
-the seed defaults — a plan saved by an older build, or hand-edited in devtools, comes back with the
-missing parts filled in rather than blanking the page. If a render ever does fail, the error screen
-offers to clear the saved plan. Two tabs open at once will notice each other and say so rather than
-silently overwriting.
+There is no account, no database and no network request after the page loads. That is the whole
+privacy design, and it is checkable by reading `src/state/`.
+
+1. **This browser.** Every keystroke is written to `localStorage` and rebuilt field-by-field on load
+   over the seed defaults, so a plan saved by an older build, or hand-edited in devtools, comes back
+   with the missing parts filled in rather than blanking the page. If a render ever does fail, the
+   error screen offers to clear it. Two tabs open at once notice each other rather than silently
+   overwriting.
+2. **A link.** `Copy a link to this plan` packs all three scenarios into the URL **fragment** —
+   about 1 kB of base64url. Browsers never send a fragment to the server, so a shared plan never
+   touches this site, its logs, or any third party. Opening such a link adopts the plan, strips the
+   token from the URL so a refresh cannot re-apply it, and offers to put the displaced plan back.
+3. **A file.** `Download it as a file` writes readable JSON you can archive, diff or commit next to
+   a board deck. `Open a plan file` reads it back.
+
+What that buys, and what it does not: a plan link is exactly as private as wherever you paste it,
+and it sits in your browser history. Nothing is encrypted — that would mean key management, and
+these are burn numbers. Anything arriving from a link or a file is untrusted input and goes through
+the same validator as the saved plan (`reviveState`), so a hostile or truncated payload degrades to
+the default plan instead of reaching the engine; names are length-capped and only ever rendered as
+text. `src/state/share.test.ts` covers the round trip and the hostile cases.
 
 ## Keyboard
 

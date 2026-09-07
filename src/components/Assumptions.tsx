@@ -155,7 +155,8 @@ export function Assumptions({ results }: { results: ModelResults }) {
       </ul>
       <p className="t-small" style={{ marginTop: 16 }}>
         A planning calculator, not legal, tax or accounting advice. Actual ownership depends on your
-        real financing documents. Rounded to whole dollars. Nothing you type leaves this browser.
+        real financing documents. Rounded to whole dollars. Nothing you type leaves this browser unless you copy a plan link or
+        download a plan file.
       </p>
     </section>
   )

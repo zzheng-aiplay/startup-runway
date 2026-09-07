@@ -9,6 +9,7 @@ import {
 import { computeModel, summarizeScenarios } from '../calc/model'
 import { allocateInvestments } from './allocate'
 import { STORAGE_KEY, loadPrefs, loadState, savePrefs, saveState } from './persist'
+import { clearPlanFromLocation, planFromLocation } from './share'
 import type {
   AppState,
   CompanyInputs,
@@ -30,7 +31,20 @@ function replaceById<T extends { id: string }>(items: T[], id: string, patch: Pa
  * the only side effect is a localStorage write so the numbers survive a reload.
  */
 export function useAppState() {
-  const [state, setState] = useState<AppState>(() => loadState() ?? defaultState())
+  // A plan in the URL wins on first load — it is why the reader followed the link —
+  // but it must not be re-applied on refresh, so the token comes straight back out
+  // and the plan it replaced is kept for one undo.
+  const [replaced, setReplaced] = useState<AppState | null>(null)
+  const [state, setState] = useState<AppState>(() => {
+    const saved = loadState()
+    const shared = planFromLocation()
+    if (shared) {
+      clearPlanFromLocation()
+      if (saved) setReplaced(saved)
+      return shared
+    }
+    return saved ?? defaultState()
+  })
   // Another tab writing the same key means this tab's copy is stale. Adopting it
   // silently could throw away whatever is being typed here, so the page says so
   // and leaves the choice to reload.
@@ -280,6 +294,14 @@ export function useAppState() {
 
     const setActiveScenario = (id: ScenarioId) => setState((s) => ({ ...s, activeScenario: id }))
 
+    /** Adopting a plan from a link or a file always leaves a way back. */
+    const adoptPlan = (next: AppState) => {
+      setState((current) => {
+        setReplaced(current)
+        return next
+      })
+    }
+
     const reset = () => setState(defaultState())
 
     return {
@@ -300,6 +322,7 @@ export function useAppState() {
       applySharedCap,
       matchInvestorsToRaise,
       setActiveScenario,
+      adoptPlan,
       reset,
     }
   }, [])
@@ -310,6 +333,13 @@ export function useAppState() {
     results,
     scenarioRows,
     changedElsewhere,
+    replaced,
+    restoreReplaced: () => {
+      if (!replaced) return
+      setState(replaced)
+      setReplaced(null)
+    },
+    dismissReplaced: () => setReplaced(null),
     showBenchmarks,
     setShowBenchmarks,
     patchCompany,
