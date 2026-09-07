@@ -3,7 +3,7 @@ import { formatMoney, formatMonths } from './calc/format'
 import { BENCHMARK_DISCLAIMER, benchmarks as buildBenchmarks } from './calc/benchmarks'
 import { glossary as buildGlossary } from './copy/glossary'
 import { useAppState } from './state/store'
-import { AnswerStrip } from './components/AnswerStrip'
+import { PageHeader } from './components/PageHeader'
 import { Assumptions } from './components/Assumptions'
 import { CompanySection } from './components/CompanySection'
 import { HiringSection } from './components/HiringSection'
@@ -48,9 +48,8 @@ export function App() {
   return (
     <MathContext.Provider value={math}>
       <main className="page">
-        <AnswerStrip
+        <PageHeader
           results={results}
-          glossary={glossary}
           tabs={
             <ScenarioTabs
               rows={scenarioRows}

@@ -74,14 +74,16 @@ describe('what it notices', () => {
     expect(typical(company(), light).roundDilution.yours).toContain('1.3%')
   })
 
-  it('a cap far outside the pre-seed band', () => {
-    // $40M is inside the AI-driven tail Carta reports, so it no longer flags.
-    const priced = scenario({ investors: [investor({ postMoneyCap: 40_000_000 })] })
-    expect(typical(company(), priced).cap.yours).toBeUndefined()
-    const seriesA = scenario({ investors: [investor({ postMoneyCap: 90_000_000 })] })
-    expect(typical(company(), seriesA).cap.yours).toContain('$90,000,000')
+  it('never judges a cap on its own — only the dilution it produces', () => {
+    // A cap is meaningless without the cheque beside it: $1M is cheap for a $25k
+    // note and impossible for a $2M one, so the cap line only ever informs.
+    for (const c of [1_000_000, 8_000_000, 40_000_000, 90_000_000]) {
+      const s = scenario({ investors: [investor({ postMoneyCap: c })] })
+      expect(typical(company(), s).cap.yours).toBeUndefined()
+    }
+    // The same inputs do get judged where it counts.
     const tiny = scenario({ investors: [investor({ postMoneyCap: 1_000_000 })] })
-    expect(typical(company(), tiny).cap.yours).toContain('$1,000,000')
+    expect(typical(company(), tiny).roundDilution.yours).toBeDefined()
   })
 
   it('an option pool well past the usual', () => {

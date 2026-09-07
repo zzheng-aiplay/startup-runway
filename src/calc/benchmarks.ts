@@ -98,7 +98,6 @@ export function benchmarks(r: ModelResults): Record<BenchmarkCode, Benchmark> {
   const firstHire = hires.length > 0 ? Math.min(...hires.map((h) => h.startMonth)) : null
   const hireSalaries = hires.map((h) => h.annualSalary)
   const funded = r.safe.investors.filter((i) => i.investment > 0 && i.effectiveCap > 0)
-  const cap = r.safe.blendedCap
 
   return {
     founderPay: {
@@ -210,25 +209,23 @@ export function benchmarks(r: ModelResults): Record<BenchmarkCode, Benchmark> {
       ]),
     },
 
+    // No "yours" clause here on purpose. A cap on its own is not something a plan can
+    // be off-benchmark on: $8M is cheap for a $250k cheque and expensive for a $2M one.
+    // The dilution line below is where this gets judged.
     cap: {
       code: 'cap',
       typical:
-        'Post-money caps have moved up. Pre-seed medians now run $10,000,000 – $18,000,000 depending on round size, and $35,000,000 for rounds above $2,500,000. Seed medians sit near $20,000,000 – $24,000,000.',
+        'A cap only means something next to the cheque beside it, so read the dilution line below rather than this one. For orientation, reported pre-seed medians rise with round size — roughly $10,000,000 under $250,000 raised, $12,500,000 at $500,000 – $999,000, and $18,000,000 at $1,000,000 – $2,400,000.',
+      note: 'Same cap, twice the cheque, twice the dilution — which is why what you give up is the number worth comparing.',
       source:
-        'Carta, State of Pre-Seed Q2 2026: median caps of $10M under $250k raised, $12.5M at $500k – $999k, $18M at $1M – $2.4M, $35M at $2.5M+. Caps rose in every size bracket quarter on quarter. Seed medians from Carta Winter 2025 ($20M) and Q4 2025 ($24M), with a long AI-driven tail — 95th percentile $80.5M.',
-      yours: clause([
-        funded.length > 0 && cap > 0 && cap < 6_000_000 ? `yours is ${formatMoney(cap)}` : null,
-        funded.length > 0 && cap > 60_000_000
-          ? `yours is ${formatMoney(cap)}, which is priced-round territory`
-          : null,
-      ]),
+        'Carta, State of Pre-Seed Q2 2026 — reported secondhand, via Finro\u2019s write-up, because Carta blocks automated fetching, so treat the figures as indicative rather than exact. Two things inflate them: the pre-seed bucket now carries a lot of AI companies at premium caps, and a cap is a ceiling on conversion, not a valuation anyone paid. Seed medians in the same data run $20,000,000 – $24,000,000 with a 95th percentile of $80,500,000.',
     },
 
     roundDilution: {
       code: 'roundDilution',
       typical:
-        'A pre-seed usually costs 10 – 20% of the company: a median of 10.8% for rounds of $500,000 – $999,000 and 15.5% at $1,000,000 – $2,400,000. Above $2,500,000 it typically passes 20%.',
-      note: 'Founders who still hold more than half after a Series A almost always kept the pre-seed under 20%.',
+        'This is the benchmark that travels: a pre-seed usually costs 10 – 20% of the company, with a median of 10.8% for rounds of $500,000 – $999,000 and 15.5% at $1,000,000 – $2,400,000. Above $2,500,000 it typically passes 20%.',
+      note: 'Caps and cheque sizes move around by sector and year; what you give up is comparable across both. Founders who still hold more than half after a Series A almost always kept the pre-seed under 20%.',
       source:
         'Carta, State of Pre-Seed Q2 2026, median expected cumulative dilution by round size: 2.1% under $250k, 6.4% at $250k – $499k, 10.8% at $500k – $999k, 15.5% at $1M – $2.4M (interquartile 9.7 – 24%), 20.6% at $2.5M – $4.9M, 23.3% above $5M.',
       yours: clause([

@@ -43,9 +43,14 @@ export function ResultsRail({
           label="Recommended raise"
           value={formatMoney(capital.recommendedRaise)}
           sub={
-            buffer > 0
-              ? `${target} mo of burn + a ${buffer} mo buffer`
-              : `${target} mo of burn, no buffer`
+            // The headline asks how much to raise, so the number actually planned has
+            // to be visible here — this card is the only place above the fold that can
+            // carry it now the answer strip is gone.
+            capital.isOverridden && Math.abs(capital.raiseGap) > 1
+              ? `you plan to raise ${formatMoney(capital.plannedRaise)}`
+              : buffer > 0
+                ? `${target} mo of burn + a ${buffer} mo buffer`
+                : `${target} mo of burn, no buffer`
           }
           tip={glossary.recommendedRaise}
           flash
