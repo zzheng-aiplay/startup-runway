@@ -267,7 +267,7 @@ export function RoundSection({
                 ? 'No pool modelled. Founders hold everything that is not sold to investors.'
                 : safe.poolIsNoOp
                   ? `No new pool created — the ${formatPct(scenario.optionPool.currentPct, 1)} you already have is at or above this target.`
-                  : `Setting aside ${formatPct(safe.poolPreSafePct, 1)} costs you ${formatPoints(-safe.dilutionPointsFromPool)} of the company before investors convert, and the pool itself lands at ${formatPct(safe.poolPostRoundPct, 1)} once the SAFEs dilute it.`}
+                  : `To leave ${formatPct(safe.poolPostRoundPct, 1)} in the pool after the round, ${formatPct(safe.poolPreSafePct, 1)} is set aside before the SAFEs convert — so they dilute the pool back down to what you asked for, and the ${formatPoints(-safe.dilutionPointsFromPool)} of gross-up comes off you rather than off the investors.`}
             </p>
           }
         >

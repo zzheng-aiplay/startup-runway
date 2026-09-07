@@ -63,7 +63,16 @@ export function computeSafe(
 
   const poolToday = clamp(nonNegative(scenario.optionPool.currentPct), 0, 0.95)
   const poolTarget = clamp(nonNegative(scenario.optionPool.newPct), 0, 0.95)
-  const poolPreSafePct = Math.max(poolToday, poolTarget)
+  /**
+   * The target is a share of the company *after* the round, because that is what the
+   * field says and what a founder means by "we want a 10% pool". So it is grossed up
+   * before the SAFEs convert — set aside t / (1 - S) now and the SAFEs dilute it back
+   * down to exactly t. The founders carry the gross-up, which is what happens in a
+   * real priced round with a promised pool.
+   */
+  const grossedUp =
+    totalSafeOwnership < 1 ? Math.min(0.95, poolTarget / (1 - totalSafeOwnership)) : poolTarget
+  const poolPreSafePct = Math.max(poolToday, grossedUp)
   const poolIncrementPct = poolPreSafePct - poolToday
   const poolPostRoundPct = poolPreSafePct * (1 - totalSafeOwnership)
 
@@ -140,7 +149,8 @@ export function computeSafe(
     poolPreSafePct,
     poolPostRoundPct,
     poolIncrementPct,
-    poolIsNoOp: poolToday > 0 && poolTarget <= poolToday,
+    // A target the existing pool already clears once the SAFEs have diluted it.
+    poolIsNoOp: poolToday > 0 && grossedUp <= poolToday,
     founderBlockBefore,
     founderBlockAfter,
     founderDilution:

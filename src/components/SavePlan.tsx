@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { MAX_LINK_LENGTH, encodePlan, planLink } from '../state/share'
 import { downloadPlan, readPlanFile } from '../state/planFile'
 import type { Store } from '../state/store'
-import { Banner, TextButton } from './primitives'
+import { Banner, QuietButton, TextButton } from './primitives'
 
 /**
  * Three ways to keep a plan, none of which involves an account or a server.
@@ -35,10 +35,16 @@ export function SavePlan({ store }: { store: Store }) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-        <TextButton onClick={copyLink}>Copy a link to this plan</TextButton>
-        <TextButton onClick={() => downloadPlan(store.state)}>Download it as a file</TextButton>
-        <TextButton onClick={() => input.current?.click()}>Open a plan file</TextButton>
+      <div className="flex flex-wrap items-center gap-3">
+        <QuietButton primary glyph="⧉" onClick={copyLink}>
+          Copy a link to this plan
+        </QuietButton>
+        <QuietButton glyph="↓" onClick={() => downloadPlan(store.state)}>
+          Download it as a file
+        </QuietButton>
+        <QuietButton glyph="↑" onClick={() => input.current?.click()}>
+          Open a plan file
+        </QuietButton>
         <input
           ref={input}
           type="file"

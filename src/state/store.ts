@@ -8,7 +8,15 @@ import {
 } from '../calc/defaults'
 import { computeModel, summarizeScenarios } from '../calc/model'
 import { allocateInvestments } from './allocate'
-import { STORAGE_KEY, loadPrefs, loadState, savePrefs, saveState } from './persist'
+import {
+  STORAGE_KEY,
+  loadPrefs,
+  loadState,
+  resolveTheme,
+  savePrefs,
+  saveState,
+  type Theme,
+} from './persist'
 import { clearPlanFromLocation, planFromLocation } from './share'
 import type {
   AppState,
@@ -50,10 +58,26 @@ export function useAppState() {
   // and leaves the choice to reload.
   const [changedElsewhere, setChangedElsewhere] = useState(false)
   const [showBenchmarks, setShowBenchmarks] = useState(() => loadPrefs().showBenchmarks)
+  // null until asked: a first visit follows whatever the machine is set to.
+  const [themePref, setThemePref] = useState<Theme | null>(() => loadPrefs().theme)
+  const [systemTheme, setSystemTheme] = useState<Theme>(() => resolveTheme(null))
+  const theme = themePref ?? systemTheme
 
   useEffect(() => {
-    savePrefs({ showBenchmarks })
-  }, [showBenchmarks])
+    savePrefs({ showBenchmarks, theme: themePref })
+  }, [showBenchmarks, themePref])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
+  // Track the machine's setting so a plan left open overnight follows it.
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => setSystemTheme(query.matches ? 'dark' : 'light')
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => {
     saveState(state)
@@ -342,6 +366,8 @@ export function useAppState() {
     dismissReplaced: () => setReplaced(null),
     showBenchmarks,
     setShowBenchmarks,
+    theme,
+    setTheme: setThemePref,
     patchCompany,
     patchScenario,
     ...api,

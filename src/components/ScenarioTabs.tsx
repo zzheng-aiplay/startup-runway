@@ -39,7 +39,6 @@ export function ScenarioTabs({
         role="group"
         aria-label="Fundraising scenario"
         className="flex gap-7"
-        style={{ borderBottom: '1px solid var(--color-rule)' }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight') {
             e.preventDefault()

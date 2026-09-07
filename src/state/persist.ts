@@ -173,19 +173,36 @@ export function saveState(state: AppState): void {
 
 const PREFS_KEY = 'fundraising-calculator.prefs.v1'
 
+export type Theme = 'light' | 'dark'
+
 export interface Prefs {
   /** The rules-of-thumb lines. On by default, off for anyone who finds them noise. */
   showBenchmarks: boolean
+  /** null means "whatever this machine is set to", which is the honest default. */
+  theme: Theme | null
+}
+
+function systemTheme(): Theme {
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+/** What to paint, given the stored preference and the machine's own setting. */
+export function resolveTheme(theme: Theme | null): Theme {
+  return theme ?? systemTheme()
 }
 
 export function loadPrefs(): Prefs {
+  const fallback: Prefs = { showBenchmarks: true, theme: null }
   try {
     const raw = window.localStorage.getItem(PREFS_KEY)
-    if (!raw) return { showBenchmarks: true }
+    if (!raw) return fallback
     const parsed = JSON.parse(raw) as Partial<Prefs>
-    return { showBenchmarks: parsed.showBenchmarks !== false }
+    return {
+      showBenchmarks: parsed.showBenchmarks !== false,
+      theme: parsed.theme === 'dark' || parsed.theme === 'light' ? parsed.theme : null,
+    }
   } catch {
-    return { showBenchmarks: true }
+    return fallback
   }
 }
 

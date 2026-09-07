@@ -23,7 +23,7 @@ src/calc/          the calculation engine — pure TypeScript, no React, fully t
   format.ts        money / percent / months formatting and parsing
   burn.ts          the burn step function: founders + costs + hires by month
   capital.ts       burn through the runway, the buffer, the recommended raise
-  runway.ts        the month-by-month cash simulation, chart rows, hire markers
+  runway.ts        the month-by-month cash simulation, projection rows, hire markers
   safe.ts          post-money SAFE dilution, option pool, cap table
   model.ts         computeModel() — the single entry point — and the warnings
   defaults.ts      the seed state for Lean / Base / Aggressive
@@ -86,8 +86,9 @@ points lost to the SAFEs (`(1 − P) × S`) — reconciles exactly to the total.
   priced round's price and the investor takes whichever is better. So the model is right as long as
   the next round prices at or above the cap; if it prices below, the discount converts off that
   lower price and costs the founders more than the tool shows.
-- The option pool is created before the SAFEs convert, so founders pay for it and incoming
-  investors do not — which is why a pool typed as 10% lands smaller after the round.
+- The option pool you ask for is a share of the company *after* the round. It is set aside before
+  the SAFEs convert and grossed up by `1 / (1 - S)` so their dilution leaves it at exactly the size
+  you asked for — which means the founders carry the gross-up and the incoming investors do not.
 - MFN, pro-rata rights, note interest, revenue, interest earned, and every term of an actual priced
   round are ignored.
 - The founders plus the option pool are assumed to own 100% today.
@@ -106,6 +107,13 @@ It is a planning calculator, not legal, tax or accounting advice.
 `npm test` covers burn, hiring impact, the buffer, runway (including the exact-zero boundary),
 SAFE dilution with any number of investors, founder dilution, option-pool scenarios, the cap-table
 invariants, the warnings, and a no-NaN-whatever-you-type sweep.
+
+## What the chart shows
+
+Monthly spending, stacked into founder pay, hires and everything else, stepping up in the month each
+hire lands. That is the figure that explains why the raise is not burn × months. The engine still
+computes the cash-balance series (`ModelResults.chart`) and its tests still pin it — nothing plots it
+today, so putting the cash picture back is a component away.
 
 ## Typical ranges
 

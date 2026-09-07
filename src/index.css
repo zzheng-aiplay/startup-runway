@@ -39,6 +39,9 @@
   --color-investors: #1f6f6b;
   --color-investors-2: #4e9a94;
   --color-pool: #8e9aa8;
+  --color-expense-founders: #2c4a7c;
+  --color-expense-hires: #5a78a6;
+  --color-expense-operating: #a9b6cd;
 
   --color-warning: #b07a1e;
   --color-warning-ink: #6e4a10;
@@ -328,14 +331,24 @@ body {
     align-items: start;
   }
 
-  .rail {
-    position: sticky;
-    top: var(--sticky-top);
-    max-height: calc(100vh - 48px);
+  /**
+   * Two independent panes. Each one is capped at the viewport and scrolls its own
+   * content, so the inputs and the outputs can be read against each other without
+   * either dragging the other along.
+   *
+   * max-height rather than height, deliberately: a column shorter than the viewport
+   * gets no scrollbar and no empty space below it — the pane is bound to what is
+   * actually in it. Nothing is sticky, so nothing can end up pinned over content it
+   * has no relationship to.
+   */
+  .pane {
+    max-height: calc(100vh - var(--sticky-top) * 2);
     overflow-y: auto;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--color-ink-200) transparent;
+    /* Keep the scrollbar off the right-aligned numbers. */
+    padding-right: 14px;
+    margin-right: -14px;
   }
 
   .section {
@@ -343,9 +356,35 @@ body {
     border-top: 1px solid var(--color-hairline);
   }
 
+  /* The column heading above it already supplies the space. */
   .section:first-of-type {
     border-top: 0;
-    padding-top: 32px;
+    padding-top: 0;
+  }
+
+  /** Inputs on the left, outputs on the right, said out loud once at the top. */
+  .column-head {
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  /* The top block ends where the appendix band begins, so it drops its own tail. */
+  .page-top {
+    padding-bottom: 0;
+  }
+
+  /**
+   * Everything below the save links is reference, not the tool. A full-bleed sunken
+   * slab with a heavier rule says that before a single word is read — the one place
+   * this page uses a background fill, because the alternative is a reader wondering
+   * whether the scenario table is another input.
+   */
+  .appendix {
+    margin-top: 64px;
+    padding-block: 36px 96px;
+    background: var(--color-sunken);
+    border-top: 2px solid var(--color-rule-strong);
   }
 
   /* ------------------------------------------------------------- controls */
@@ -517,11 +556,9 @@ body {
 
   /* Always in the layout and in the tab order — only its opacity changes. */
   .remove-row {
+    position: relative;
     width: 20px;
     height: 20px;
-    padding: 6px;
-    margin: -6px;
-    box-sizing: content-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -536,6 +573,13 @@ body {
     transition: opacity 100ms var(--ease-std), color var(--dur-fast);
   }
 
+  /* Same overlay trick: a 32px target without a 32px footprint in the grid. */
+  .remove-row::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+
   .list-row:hover .remove-row,
   .list-row:focus-within .remove-row,
   .remove-row:focus-visible {
@@ -545,6 +589,55 @@ body {
   .remove-row:hover {
     color: var(--color-danger);
     background: var(--color-danger-subtle);
+  }
+
+  /**
+   * A real button, in the memo's own materials: one hairline, a 2px corner, no fill
+   * and no shadow. Prominent enough to be found at the foot of a long page without
+   * becoming the loudest thing on it.
+   */
+  .quiet-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 14px;
+    background: var(--color-paper);
+    border: 1px solid var(--color-rule);
+    border-radius: 2px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--color-ink-800);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-std),
+      color var(--dur-fast) var(--ease-std);
+  }
+
+  .quiet-button:hover {
+    border-color: var(--color-ink-400);
+    color: var(--color-ink-900);
+  }
+
+  .quiet-button[data-primary='true'] {
+    border-color: var(--color-accent-rule);
+    color: var(--color-accent);
+  }
+
+  .quiet-button[data-primary='true']:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent-hover);
+  }
+
+  .quiet-button .glyph {
+    font-size: 14px;
+    line-height: 1;
+    color: var(--color-ink-400);
+  }
+
+  .quiet-button[data-primary='true'] .glyph {
+    color: var(--color-accent);
   }
 
   .text-button {
@@ -565,66 +658,6 @@ body {
   .text-button:hover {
     color: var(--color-accent-hover);
     text-decoration-style: solid;
-  }
-
-  /* Slider: a 2px painted track, a 14px thumb, and a real 24px hit area. */
-  .slider {
-    appearance: none;
-    width: 100%;
-    height: 24px;
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .slider::-webkit-slider-runnable-track {
-    height: 2px;
-    border-radius: 1px;
-    background: linear-gradient(
-      to right,
-      var(--color-accent) 0 var(--fill, 0%),
-      var(--color-ink-200) var(--fill, 0%) 100%
-    );
-  }
-
-  .slider::-moz-range-track {
-    height: 2px;
-    border-radius: 1px;
-    background: linear-gradient(
-      to right,
-      var(--color-accent) 0 var(--fill, 0%),
-      var(--color-ink-200) var(--fill, 0%) 100%
-    );
-  }
-
-  .slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    margin-top: -6px;
-    border-radius: 50%;
-    background: var(--color-paper);
-    border: 1.5px solid var(--color-accent);
-    transition: border-width var(--dur-fast) var(--ease-out);
-  }
-
-  .slider::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--color-paper);
-    border: 1.5px solid var(--color-accent);
-  }
-
-  .slider:hover::-webkit-slider-thumb {
-    border-width: 3px;
-  }
-
-  .slider:focus-visible {
-    outline: none;
-  }
-
-  .slider:focus-visible::-webkit-slider-thumb {
-    box-shadow: var(--focus-ring);
   }
 
   .switch {
@@ -742,11 +775,19 @@ body {
     margin-left: 5px;
     transform: translateY(-1px);
     cursor: help;
-    /* 14px of ink, a 32px target: the padding is clipped back by the margin so
-       nothing moves. */
-    padding: 9px;
-    margin: -9px -9px -9px -4px;
-    box-sizing: content-box;
+    position: relative;
+    flex: none;
+  }
+
+  /**
+   * 14px of ink, a 32px target. It has to be an overlay rather than padding: this
+   * element has a border, so padding would draw the circle at 34px and shove it
+   * over the last letters of the label.
+   */
+  .tip-trigger::after {
+    content: '';
+    position: absolute;
+    inset: -9px;
   }
 
   .tip-trigger:hover {
@@ -885,23 +926,94 @@ body {
 
   /* ------------------------------------------------------------- scenario */
 
+  /**
+   * No track and no sliding indicator: a rule with a short accent segment under the
+   * active item reads as a slider, and these are three states, not a range. Weight
+   * and colour carry the selection instead.
+   */
   .tab {
     background: none;
     border: 0;
-    padding: 0 0 10px;
+    padding: 0;
     text-align: left;
     cursor: pointer;
-    border-bottom: 1px solid transparent;
-    margin-bottom: -1px;
   }
 
-  .tab:hover {
-    border-bottom-color: var(--color-ink-300);
+  .tab:hover span:first-child {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--color-ink-300);
   }
+}
 
-  .tab[aria-pressed='true'] {
-    border-bottom: 2px solid var(--color-accent);
-  }
+
+/* ---------------------------------------------------------------------- dark -- */
+
+/**
+ * The same memo after dark: warm charcoal instead of warm paper, the ink ramp
+ * inverted, and every hue lifted enough to hold its contrast on a dark ground.
+ * Nothing else in the app knows about the theme — every colour on the page,
+ * including the chart's SVG, resolves through these properties.
+ */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-paper: #1a1815;
+  --color-surface: #221f1b;
+  --color-sunken: #141210;
+  --color-hover: #262320;
+
+  --color-ink-100: #302c27;
+  --color-ink-200: #45403a;
+  --color-ink-300: #5c574f;
+  --color-ink-400: #7c766c;
+  --color-ink-500: #9c958a;
+  --color-ink-600: #b8b2a7;
+  --color-ink-700: #d2cdc4;
+  --color-ink-800: #e6e2da;
+  --color-ink-900: #f5f2ec;
+
+  --color-hairline: #2e2a25;
+  --color-rule: #3d3830;
+  --color-rule-strong: #625b51;
+
+  --color-accent: #86a9de;
+  --color-accent-hover: #a4c0e9;
+  --color-accent-subtle: #1d2532;
+  --color-accent-rule: #4a5a75;
+
+  --color-cash-out: #e2907e;
+  --color-cash-in: #74c39a;
+  --color-founders: #86a9de;
+  --color-founders-2: #b0c5e6;
+  --color-investors: #4fb8b0;
+  --color-investors-2: #86d0cb;
+  --color-pool: #99a4b1;
+
+  --color-expense-founders: #86a9de;
+  --color-expense-hires: #5b7fb4;
+  --color-expense-operating: #3b4f6d;
+
+  --color-warning: #d9a94a;
+  --color-warning-ink: #e9cb8c;
+  --color-warning-subtle: #2a2317;
+  --color-danger: #e2907e;
+  --color-danger-ink: #f0b6a8;
+  --color-danger-subtle: #2c1d19;
+
+  --accent-wash: rgba(134, 169, 222, 0.13);
+  --accent-wash-strong: rgba(134, 169, 222, 0.26);
+  --focus-ring: 0 0 0 3px rgba(134, 169, 222, 0.28);
+}
+
+/* The switch knob is the one place a literal white is hard-coded; on a dark ground
+   it reads as a hole. */
+[data-theme='dark'] .switch::after {
+  background: var(--color-ink-800);
+}
+
+[data-theme='dark'] .own-seg span {
+  color: var(--color-paper) !important;
 }
 
 /* ---------------------------------------------------------------- responsive */
@@ -919,11 +1031,12 @@ body {
     padding: 24px 20px 64px;
   }
 
-  /* Only once the layout is one column does a sticky rail stop making sense. */
-  .rail {
-    position: static;
+  /* One column: the page is the only scroller. */
+  .pane {
     max-height: none;
     overflow: visible;
+    padding-right: 0;
+    margin-right: 0;
   }
 
   .grid-two {
@@ -960,9 +1073,7 @@ body {
 }
 
 @media print {
-  .rail,
-  .sticky-answer {
-    position: static !important;
+  .pane {
     max-height: none !important;
     overflow: visible !important;
   }

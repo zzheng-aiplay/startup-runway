@@ -399,7 +399,11 @@ export interface ModelResults {
   gates: ModelGates
   /** Months 1..horizon. */
   projection: MonthPoint[]
-  /** Months 0..horizon, ready for Recharts. */
+  /**
+   * The cash-balance series, months 0..horizon. Nothing plots it at the moment — the
+   * chart in the rail shows monthly spending instead — but it is the model's, not the
+   * chart's, and putting the cash picture back is a component away.
+   */
   chart: ChartPoint[]
   hireEvents: HireEventGroup[]
   warnings: ModelWarning[]

@@ -96,27 +96,49 @@ describe('SAFE dilution', () => {
 describe('option pool', () => {
   const investors = [investor({ id: 'i1' }), investor({ id: 'i2' })]
 
-  it('creates the pool before the SAFEs, so the pool is diluted too', () => {
+  it('a pool asked for after the round is exactly that much after the round', () => {
     const { safe } = computeSafe(
       twoFounders,
       scenario({ investors, optionPool: { currentPct: 0, newPct: 0.1 } }),
     )
-    expect(safe.poolPreSafePct).toBe(0.1)
-    expect(safe.poolPostRoundPct).toBeCloseTo(0.0875, 12)
-    expect(safe.founderBlockAfter).toBeCloseTo(0.7875, 12)
-    expect(safe.founderRows[0].after).toBeCloseTo(0.39375, 12)
+    // 10% / (1 - 12.5%) is set aside pre-SAFE so it lands on 10% once they convert.
+    expect(safe.poolPreSafePct).toBeCloseTo(0.1 / 0.875, 12)
+    expect(safe.poolPostRoundPct).toBeCloseTo(0.1, 12)
+    // The founders carry the gross-up: 88.57% of the company, then diluted 12.5%.
+    expect(safe.founderBlockAfter).toBeCloseTo(0.775, 12)
+    expect(safe.founderRows[0].after).toBeCloseTo(0.3875, 12)
+    // Founders + investors + pool still account for the whole company.
+    expect(safe.founderBlockAfter + safe.totalSafeOwnership + safe.poolPostRoundPct).toBeCloseTo(
+      1,
+      12,
+    )
   })
 
   it('never bills founders for a pool that already existed', () => {
+    // Pool of 10% today and no new target: the SAFEs dilute it like anything else,
+    // and the round costs the founders only what the SAFEs cost.
+    const { safe } = computeSafe(
+      twoFounders,
+      scenario({ investors, optionPool: { currentPct: 0.1, newPct: 0 } }),
+    )
+    expect(safe.founderBlockBefore).toBeCloseTo(0.9, 12)
+    expect(safe.founderBlockAfter).toBeCloseTo(0.7875, 12)
+    expect(safe.poolPostRoundPct).toBeCloseTo(0.0875, 12)
+    expect(safe.founderDilution).toBeCloseTo(0.125, 12)
+    expect(safe.dilutionPointsFromPool).toBe(0)
+  })
+
+  it('charges the founders only the top-up when a pool already exists', () => {
+    // 10% today, and they want it still 10% after the round: that is a real top-up,
+    // because the SAFEs would otherwise dilute it to 8.75%.
     const { safe } = computeSafe(
       twoFounders,
       scenario({ investors, optionPool: { currentPct: 0.1, newPct: 0.1 } }),
     )
-    expect(safe.founderBlockBefore).toBeCloseTo(0.9, 12)
-    expect(safe.founderBlockAfter).toBeCloseTo(0.7875, 12)
-    // The round cost them 12.5% of what they held, not 21.25%.
-    expect(safe.founderDilution).toBeCloseTo(0.125, 12)
-    expect(safe.dilutionPointsFromPool).toBe(0)
+    expect(safe.poolPostRoundPct).toBeCloseTo(0.1, 12)
+    expect(safe.dilutionPointsFromPool).toBeCloseTo(0.1 / 0.875 - 0.1, 12)
+    expect(safe.founderDilution).toBeGreaterThan(0.125)
+    expect(safe.founderDilution).toBeLessThan(0.15)
   })
 
   it('attributes dilution to the pool and the SAFEs separately, and they reconcile', () => {
@@ -124,15 +146,16 @@ describe('option pool', () => {
       twoFounders,
       scenario({ investors, optionPool: { currentPct: 0.05, newPct: 0.15 } }),
     )
-    expect(safe.dilutionPointsFromPool).toBeCloseTo(0.1, 12)
-    expect(safe.dilutionPointsFromSafes).toBeCloseTo(0.85 * 0.125, 12)
+    const preSafePool = 0.15 / 0.875
+    expect(safe.dilutionPointsFromPool).toBeCloseTo(preSafePool - 0.05, 12)
+    expect(safe.dilutionPointsFromSafes).toBeCloseTo((1 - preSafePool) * 0.125, 12)
     expect(safe.dilutionPointsFromPool + safe.dilutionPointsFromSafes).toBeCloseTo(
       safe.dilutionPoints,
       12,
     )
   })
 
-  it('flags a new-pool target that does nothing', () => {
+  it('flags a new-pool target the existing pool already clears', () => {
     const { safe } = computeSafe(
       twoFounders,
       scenario({ investors, optionPool: { currentPct: 0.1, newPct: 0.05 } }),

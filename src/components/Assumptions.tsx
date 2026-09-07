@@ -106,14 +106,14 @@ export function Assumptions({ results }: { results: ModelResults }) {
       key: 'pool-first',
       body: (
         <>
-          The option pool is created before the SAFEs convert, so the founders pay for it and the
-          incoming investors do not — which also means a pool typed as <Num>10%</Num> lands smaller
-          after the round
+          The pool you ask for is a share of the company <em>after</em> the round, so it is set
+          aside before the SAFEs convert and grossed up to survive them — the founders carry that
+          gross-up and the incoming investors do not
           {showPool && (
             <>
               {' '}
-              (yours: a <Num>{formatPct(safe.poolPreSafePct, 1)}</Num> pool lands at{' '}
-              <Num>{formatPct(safe.poolPostRoundPct, 1)}</Num>)
+              (yours: <Num>{formatPct(safe.poolPreSafePct, 1)}</Num> set aside to leave{' '}
+              <Num>{formatPct(safe.poolPostRoundPct, 1)}</Num> after the round)
             </>
           )}
           .

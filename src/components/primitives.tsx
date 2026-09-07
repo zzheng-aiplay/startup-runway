@@ -112,7 +112,14 @@ export function InfoTip({ term, definition, yours }: Glossary) {
             ...(above ? { bottom: 'calc(100% + 8px)' } : { top: 'calc(100% + 8px)' }),
           }}
         >
-          <span className="t-th block mb-1.5">{term}</span>
+          {/* Sentence case: a tooltip heading is a phrase, and letterspaced caps on a
+              phrase this long is the one place the micro-label style stops working. */}
+          <span
+            className="block mb-1.5 text-ink-600"
+            style={{ fontSize: 12, lineHeight: '16px', fontWeight: 600 }}
+          >
+            {term}
+          </span>
           <span
             className="num block text-[13px] leading-5 text-ink-800"
             style={{ maxWidth: '40ch' }}
@@ -417,71 +424,6 @@ export function TextField({
   )
 }
 
-/** Slider for feel, paired with a typeable field for precision. */
-export function Slider({
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-  ariaLabel,
-  ticks,
-  endLabels,
-}: {
-  value: number
-  onChange: (next: number) => void
-  min: number
-  max: number
-  step?: number
-  ariaLabel: string
-  ticks?: number[]
-  endLabels?: [string, string]
-}) {
-  const fill = `${((Math.min(max, Math.max(min, value)) - min) / (max - min)) * 100}%`
-  return (
-    <div>
-      <input
-        type="range"
-        className="slider"
-        style={{ ['--fill' as string]: fill }}
-        aria-label={ariaLabel}
-        min={min}
-        max={max}
-        step={step}
-        value={Math.min(max, Math.max(min, value))}
-        onChange={(e) => onChange(Number(e.target.value))}
-        onKeyDown={(e) => {
-          if (e.key !== 'PageUp' && e.key !== 'PageDown') return
-          e.preventDefault()
-          const jump = (max - min) / 6
-          onChange(
-            Math.round(
-              Math.min(max, Math.max(min, value + (e.key === 'PageUp' ? jump : -jump))) / step,
-            ) * step,
-          )
-        }}
-      />
-      {ticks && (
-        <div className="relative h-5 mt-0.5">
-          {ticks.map((t) => (
-            <span
-              key={t}
-              className="absolute top-0 w-px h-1 bg-ink-300"
-              style={{ left: `${((t - min) / (max - min)) * 100}%` }}
-            />
-          ))}
-          {endLabels && (
-            <>
-              <span className="t-small num absolute left-0 top-1.5">{endLabels[0]}</span>
-              <span className="t-small num absolute right-0 top-1.5">{endLabels[1]}</span>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function Toggle({
   checked,
   onChange,
@@ -515,6 +457,36 @@ export function Toggle({
         />
       </div>
     </div>
+  )
+}
+
+/** A bordered button for the few actions worth finding without reading. */
+export function QuietButton({
+  children,
+  onClick,
+  glyph,
+  primary,
+}: {
+  children: ReactNode
+  onClick: () => void
+  /** A single character, sized and coloured as apparatus rather than as a label. */
+  glyph?: string
+  primary?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      className="quiet-button"
+      data-primary={primary ? 'true' : undefined}
+      onClick={onClick}
+    >
+      {glyph && (
+        <span aria-hidden className="glyph">
+          {glyph}
+        </span>
+      )}
+      {children}
+    </button>
   )
 }
 

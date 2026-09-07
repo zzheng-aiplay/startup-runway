@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# A shell redirect to `-` writes a file literally called that; it is never wanted.
+/-

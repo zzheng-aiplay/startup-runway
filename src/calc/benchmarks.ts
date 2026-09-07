@@ -244,7 +244,7 @@ export function benchmarks(r: ModelResults): Record<BenchmarkCode, Benchmark> {
         'By the seed round the pool is usually 10 – 15%. Many pre-seed teams leave it at 0 and create it at the priced round instead.',
       source:
         'A long-standing convention rather than a figure anyone publishes per stage. Carta\u2019s measured first-grant sizes (median 1.49%, then 0.85%, 0.50%) are what a pool of that size is actually spent on.',
-      note: 'Created before the SAFEs convert, as it is here, the founders pay for all of it.',
+      note: 'Asked for as a share of the company after the round, as it is here, the founders pay for all of it — including the gross-up that keeps it that size once the SAFEs convert.',
       yours: clause([
         r.safe.poolPreSafePct > 0.2 ? `yours is ${formatPct(r.safe.poolPreSafePct, 1)}` : null,
       ]),

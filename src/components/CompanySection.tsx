@@ -21,7 +21,6 @@ import {
   RemoveRow,
   Disclosure,
   Section,
-  Slider,
   TextButton,
   TextField,
   Warnings,
@@ -224,23 +223,7 @@ export function CompanySection({
           />
         </Field>
 
-        <Field
-          label="How long we want the money to last"
-          tip={glossary.targetRunway}
-          below={
-            <div className="pb-2">
-              <Slider
-                value={scenario.targetRunwayMonths}
-                onChange={(targetRunwayMonths) => store.patchScenario({ targetRunwayMonths })}
-                min={3}
-                max={36}
-                ariaLabel="Target runway in months"
-                ticks={[6, 12, 18, 24, 30]}
-                endLabels={['3 mo', '36 mo']}
-              />
-            </div>
-          }
-        >
+        <Field label="How long we want the money to last" tip={glossary.targetRunway}>
           <IntInput
             value={scenario.targetRunwayMonths}
             onChange={(targetRunwayMonths) => store.patchScenario({ targetRunwayMonths })}
@@ -257,19 +240,6 @@ export function CompanySection({
           tip={glossary.cashBuffer}
           echo={
             <span className="num">{formatMoney(results.capital.bufferAmount)} of the raise</span>
-          }
-          below={
-            <div className="pb-2">
-              <Slider
-                value={scenario.bufferMonths}
-                onChange={(bufferMonths) => store.patchScenario({ bufferMonths })}
-                min={0}
-                max={12}
-                ariaLabel="Buffer months beyond the target runway"
-                ticks={[3, 6, 9]}
-                endLabels={['0 mo', '12 mo']}
-              />
-            </div>
           }
         >
           <IntInput

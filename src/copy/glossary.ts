@@ -302,10 +302,10 @@ export function glossary(r: ModelResults): Record<GlossaryKey, GlossaryEntry> {
   if (safe.poolIsNoOp) {
     poolNewYours = `Your existing ${formatPct(safe.before.pool)} pool already meets this target, so no new pool is created.`
   } else if (safe.poolPreSafePct > 0 && !gates.safeOversold) {
-    const created = `Creating it is ${formatPoints(-safe.dilutionPointsFromPool)} of founder ownership on its own, before any SAFE converts.`
+    const created = `That costs you ${formatPoints(-safe.dilutionPointsFromPool)} on its own, before any SAFE converts.`
     poolNewYours =
       safe.totalSafeOwnership > 0
-        ? `Your pool goes into the round at ${formatPct(safe.poolPreSafePct)} and reads as ${formatPct(safe.poolPostRoundPct, 1)} coming out of it, because the SAFEs dilute the pool along with you. ${created}`
+        ? `To leave ${formatPct(safe.poolPostRoundPct, 1)} in the pool after the round, ${formatPct(safe.poolPreSafePct)} goes in beforehand — the SAFEs dilute the pool along with you, so it has to start bigger. ${created}`
         : `Your pool is ${formatPct(safe.poolPreSafePct)} of the company and stays there until a cheque converts, which will dilute the pool along with you. ${created}`
   } else if (safe.poolPreSafePct <= 0) {
     poolNewYours = `Your target pool is ${formatPct(safe.poolPreSafePct)}, so nothing is set aside ahead of this round.`
@@ -455,7 +455,7 @@ export function glossary(r: ModelResults): Record<GlossaryKey, GlossaryEntry> {
 
     optionPoolNew: entry(
       'New option pool',
-      'The total pool you want in place before the new money lands, as a percentage of the company today. It is created out of the current owners first and then diluted by the new money along with everyone else, which is why a pool typed as 10% reads smaller once the round is done.',
+      'The size you want the pool to be once this round has closed, as a share of the whole company. Type 10 and it is 10% after the round: enough is set aside beforehand to survive the dilution, and that extra comes out of the existing owners rather than the incoming investors.',
       poolNewYours,
     ),
 

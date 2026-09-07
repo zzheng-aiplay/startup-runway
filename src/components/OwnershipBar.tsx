@@ -332,8 +332,8 @@ function sentenceParts(safe: SafeResults): Part[] {
  */
 /**
  * These are the founders' OWN points, which is not the same as what the other side
- * gains: a 10-point pool created before the SAFEs convert lands at 8.75 points on
- * the cap table. The wording says "of your points" so the sentence and the table
+ * gains: a pool asked for post-round is set aside grossed-up, so the points it costs
+ * the founders exceed the points it ends up holding. The wording says "of your points" so the sentence and the table
  * below it cannot be read as contradicting each other.
  */
 function move(delta: number, destination: string): Part[] {

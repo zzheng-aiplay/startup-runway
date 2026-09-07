@@ -1,7 +1,7 @@
 import { formatMoney, formatMonths, formatMonthsShort, formatPct, formatPoints } from '../calc/format'
 import type { ModelResults, ScenarioId } from '../calc/types'
 import { CapTable } from './CapTable'
-import { CashChart } from './CashChart'
+import { ExpenseChart } from './ExpenseChart'
 import { OwnershipBar } from './OwnershipBar'
 import { StatCell, type GlossaryMap } from './primitives'
 
@@ -102,7 +102,7 @@ export function ResultsRail({
         <CapTable results={results} tip={glossary.capTable} />
       </div>
 
-      <CashChart results={results} />
+      <ExpenseChart results={results} />
     </div>
   )
 }

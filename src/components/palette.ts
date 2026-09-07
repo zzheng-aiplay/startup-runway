@@ -4,26 +4,37 @@ import type { CapTableRow, HolderKind } from '../calc/types'
  * Semantic colour is rationed on purpose: it appears in the cap-table keys, the
  * ownership bar, and the chart — nowhere else. Ordinary dilution is never
  * alarm-coloured; red is reserved for cash going negative and for real errors.
+ *
+ * These are `var()` references rather than hex so the SVG in the chart and the
+ * swatches beside it follow the light or dark theme along with everything else.
+ * SVG presentation attributes resolve custom properties, so Recharts takes them
+ * as-is for stroke, fill and tick colours.
  */
 export const COLORS = {
-  founders: '#2C4A7C',
-  // Dark enough that a white 11px label inside the segment clears 4.5:1.
-  founders2: '#46628F',
-  investors: '#1F6F6B',
-  investors2: '#4E9A94',
-  pool: '#8E9AA8',
-  accent: '#2C4A7C',
-  cashOut: '#9C3B2E',
-  ink100: '#EDEAE5',
-  ink200: '#DCD8D1',
-  ink300: '#C2BDB4',
-  ink500: '#736D62',
-  ink600: '#5C564D',
-  ink900: '#17150F',
-  rule: '#D5D0C8',
-  ruleStrong: '#A8A29A',
-  paper: '#FCFBF9',
-  surface: '#FFFFFF',
+  founders: 'var(--color-founders)',
+  founders2: 'var(--color-founders-2)',
+  investors: 'var(--color-investors)',
+  investors2: 'var(--color-investors-2)',
+  pool: 'var(--color-pool)',
+  /**
+   * Burn is one thing in three parts, so it gets one hue in three steps rather than
+   * three hues — which also keeps it out of the ownership legend's vocabulary.
+   */
+  expenseFounders: 'var(--color-expense-founders)',
+  expenseHires: 'var(--color-expense-hires)',
+  expenseOperating: 'var(--color-expense-operating)',
+  accent: 'var(--color-accent)',
+  cashOut: 'var(--color-cash-out)',
+  ink100: 'var(--color-ink-100)',
+  ink200: 'var(--color-ink-200)',
+  ink300: 'var(--color-ink-300)',
+  ink500: 'var(--color-ink-500)',
+  ink600: 'var(--color-ink-600)',
+  ink900: 'var(--color-ink-900)',
+  rule: 'var(--color-rule)',
+  ruleStrong: 'var(--color-rule-strong)',
+  paper: 'var(--color-paper)',
+  surface: 'var(--color-surface)',
 } as const
 
 /** Founders and investors alternate between two tints of their own hue. */
