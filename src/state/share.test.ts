@@ -36,13 +36,13 @@ function fingerprint(s: ReturnType<typeof defaultState>) {
 }
 
 describe('a plan in a link', () => {
-  it('round-trips every number the reader can see', () => {
-    const revived = decodePlan(encodePlan(state))
+  it('round-trips every number the reader can see', async () => {
+    const revived = await decodePlan(await encodePlan(state))
     expect(revived).not.toBeNull()
     expect(fingerprint(revived!)).toEqual(fingerprint(state))
   })
 
-  it('round-trips an edited plan, including which scenario is open', () => {
+  it('round-trips an edited plan, including which scenario is open', async () => {
     const edited = structuredClone(state)
     edited.activeScenario = 'aggressive'
     edited.company.currentCash = 275_000
@@ -55,7 +55,7 @@ describe('a plan in a link', () => {
     edited.scenarios.lean.hires = [
       { id: 'x', role: 'Designer', headcount: 2, annualSalary: 140_000, startMonth: 7 },
     ]
-    const revived = decodePlan(encodePlan(edited))!
+    const revived = (await decodePlan(await encodePlan(edited)))!
     expect(revived.activeScenario).toBe('aggressive')
     expect(revived.company.currentCash).toBe(275_000)
     expect(revived.company.founders[0].name).toBe('Ada')
@@ -65,8 +65,8 @@ describe('a plan in a link', () => {
     expect(fingerprint(revived)).toEqual(fingerprint(edited))
   })
 
-  it('gives every revived row a fresh unique id', () => {
-    const revived = decodePlan(encodePlan(state))!
+  it('gives every revived row a fresh unique id', async () => {
+    const revived = (await decodePlan(await encodePlan(state)))!
     const ids = [
       ...revived.company.founders.map((f) => f.id),
       ...revived.company.expenses.map((e) => e.id),
@@ -76,19 +76,35 @@ describe('a plan in a link', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('stays short enough to paste', () => {
-    expect(encodePlan(state).length).toBeLessThan(MAX_LINK_LENGTH)
+  it('stays short enough to paste', async () => {
+    expect((await encodePlan(state)).length).toBeLessThan(MAX_LINK_LENGTH)
   })
 
-  it('is url-safe: no +, / or = to be mangled in transit', () => {
-    expect(encodePlan(state)).toMatch(/^[A-Za-z0-9\-_]+$/)
+  it('is url-safe: a format marker, then nothing that transit can mangle', async () => {
+    expect(await encodePlan(state)).toMatch(/^~[12][A-Za-z0-9\-_]+$/)
+  })
+
+  it('is short enough to paste into a sentence', async () => {
+    // 982 characters before it was compressed and stopped shipping seed labels.
+    expect((await encodePlan(state)).length).toBeLessThan(280)
+  })
+
+  it('still opens a link shared before any of that', async () => {
+    // The pre-compression format: bare base64url of the packed JSON, no marker.
+    const legacy = btoa(JSON.stringify(packPlan(state)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
+    const revived = await decodePlan(legacy)
+    expect(revived).not.toBeNull()
+    expect(fingerprint(revived!)).toEqual(fingerprint(state))
   })
 })
 
 describe('a link is untrusted input', () => {
-  it('returns null for anything that is not a plan', () => {
+  it('returns null for anything that is not a plan', async () => {
     for (const junk of ['', 'x', 'notbase64!!', btoa('{}'), btoa('[]'), btoa('null')]) {
-      expect(decodePlan(junk)).toBeNull()
+      expect(await decodePlan(junk)).toBeNull()
     }
   })
 
@@ -126,17 +142,17 @@ describe('a link is untrusted input', () => {
     expect(Number.isFinite(model.safe.totalSafeOwnership)).toBe(true)
   })
 
-  it('caps a name long enough to wreck the layout', () => {
+  it('caps a name long enough to wreck the layout', async () => {
     const edited = structuredClone(state)
     edited.company.founders[0].name = 'A'.repeat(5_000)
-    const revived = decodePlan(encodePlan(edited))!
+    const revived = (await decodePlan(await encodePlan(edited)))!
     expect(revived.company.founders[0].name.length).toBe(60)
   })
 
-  it('keeps markup as text, since it is only ever rendered as text', () => {
+  it('keeps markup as text, since it is only ever rendered as text', async () => {
     const edited = structuredClone(state)
     edited.company.expenses[0].name = '<img src=x onerror=alert(1)>'
-    const revived = decodePlan(encodePlan(edited))!
+    const revived = (await decodePlan(await encodePlan(edited)))!
     expect(revived.company.expenses[0].name).toBe('<img src=x onerror=alert(1)>')
   })
 })

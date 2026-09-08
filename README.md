@@ -145,9 +145,16 @@ privacy design, and it is checkable by reading `src/state/`.
    error screen offers to clear it. Two tabs open at once notice each other rather than silently
    overwriting.
 2. **A link.** `Copy a link to this plan` packs all three scenarios into the URL **fragment** —
-   about 1 kB of base64url. Browsers never send a fragment to the server, so a shared plan never
-   touches this site, its logs, or any third party. Opening such a link adopts the plan, strips the
-   token from the URL so a refresh cannot re-apply it, and offers to put the displaced plan back.
+   around 200 characters, so the whole link fits in a sentence. Browsers never send a fragment to the
+   server, so a shared plan never touches this site, its logs, or any third party. Opening such a
+   link adopts the plan, strips the token from the URL so a refresh cannot re-apply it, and offers to
+   put the displaced plan back.
+
+   Two things keep it short. Any label still equal to the seed's travels as a single `0` and is read
+   back from the seed — nine default expense names alone were 250 bytes. What is left is deflated
+   before base64, which is worth about 60%. Together that took the default plan from 982 characters
+   to 193. A token carries a format marker (`~2` for deflated, `~1` for plain), and a token with no
+   marker is a link shared before any of this existed, which still opens.
 3. **A file.** `Download it as a file` writes readable JSON you can archive, diff or commit next to
    a board deck. `Open a plan file` reads it back.
 

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { MAX_LINK_LENGTH, encodePlan, planLink } from '../state/share'
+import { MAX_LINK_LENGTH, encodePlan } from '../state/share'
 import { downloadPlan, readPlanFile } from '../state/planFile'
 import type { Store } from '../state/store'
 import { Banner, QuietButton, TextButton } from './primitives'
@@ -18,17 +18,18 @@ export function SavePlan({ store }: { store: Store }) {
   const input = useRef<HTMLInputElement>(null)
 
   const copyLink = async () => {
-    const link = planLink(store.state)
-    if (encodePlan(store.state).length > MAX_LINK_LENGTH) {
+    const token = await encodePlan(store.state)
+    if (token.length > MAX_LINK_LENGTH) {
       setCopied('long')
       return
     }
+    const link = `${window.location.origin}${window.location.pathname}#plan=${token}`
     try {
       await navigator.clipboard.writeText(link)
       setCopied('ok')
     } catch {
       // Clipboard access can be refused; the plan is still in the address bar.
-      window.location.hash = `plan=${encodePlan(store.state)}`
+      window.location.hash = `plan=${token}`
       setCopied('failed')
     }
   }

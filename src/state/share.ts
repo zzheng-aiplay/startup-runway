@@ -24,6 +24,17 @@ import { reviveState } from './persist'
 /** Bump when the packed shape changes so old links fail cleanly instead of oddly. */
 const FORMAT = 1
 
+/**
+ * Transport markers, prefixed to the token. `~` is outside the base64url alphabet,
+ * so a marker can never be mistaken for payload — and a token with no marker at all
+ * is a link shared before compression existed, which still decodes.
+ */
+const RAW = '~1'
+const DEFLATED = '~2'
+
+/** A name equal to the seed's travels as this instead of as itself. */
+const SEED_NAME = 0
+
 /** Long enough for a real plan, short enough to paste into a chat window. */
 export const MAX_LINK_LENGTH = 1800
 
@@ -38,23 +49,41 @@ function round(value: number, dp = 6): number {
   return Math.round(value * f) / f
 }
 
-function text(value: unknown): string {
-  return typeof value === 'string' ? value.slice(0, MAX_NAME) : ''
+/**
+ * Most plans keep the seeded labels — nine expense lines alone are 250 bytes of
+ * "Cloud / infrastructure" and friends. Anything still equal to the seed travels as
+ * a single 0 and is read back from the seed on the other side.
+ *
+ * The trade-off, stated plainly: if a future build renames a default, an old link
+ * shows the new label. Only labels can drift this way, never numbers.
+ */
+function packName(name: string, seed: string | undefined): string | number {
+  return name === seed ? SEED_NAME : name
+}
+
+function readName(value: unknown, seed: string | undefined, fallback: string): string {
+  if (value === SEED_NAME) return seed ?? fallback
+  return typeof value === 'string' ? value.slice(0, MAX_NAME) : fallback
 }
 
 function num(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
-function packScenario(s: ScenarioInputs): Packed {
+function packScenario(s: ScenarioInputs, seed: ScenarioInputs): Packed {
   return [
     s.targetRunwayMonths,
     s.bufferMonths,
     s.plannedRaiseOverride,
     [s.safe.postMoneyCap, round(s.safe.discountRate), s.safe.mfn ? 1 : 0, s.safe.sameTermsForAll ? 1 : 0],
     [round(s.optionPool.currentPct), round(s.optionPool.newPct)],
-    s.hires.map((h) => [h.role, h.headcount, h.annualSalary, h.startMonth]),
-    s.investors.map((i) => [i.name, i.investment, i.postMoneyCap, round(i.discountRate)]),
+    s.hires.map((h, i) => [packName(h.role, seed.hires[i]?.role), h.headcount, h.annualSalary, h.startMonth]),
+    s.investors.map((inv, i) => [
+      packName(inv.name, seed.investors[i]?.name),
+      inv.investment,
+      inv.postMoneyCap,
+      round(inv.discountRate),
+    ]),
   ]
 }
 
@@ -63,32 +92,64 @@ function packScenario(s: ScenarioInputs): Packed {
  * or come from the seed, and they are the bulkiest part of the state.
  */
 export function packPlan(state: AppState): Packed {
+  const seed = defaultState()
   return [
     FORMAT,
     SCENARIO_ORDER.indexOf(state.activeScenario),
     [round(state.company.payrollLoadRate), state.company.currentCash],
-    state.company.founders.map((f) => [f.name, round(f.equityShare), f.annualSalary, round(f.benefitsRate)]),
-    state.company.expenses.map((e) => [e.name, e.monthlyCost]),
-    SCENARIO_ORDER.map((id) => packScenario(state.scenarios[id])),
+    state.company.founders.map((f, i) => [
+      packName(f.name, seed.company.founders[i]?.name),
+      round(f.equityShare),
+      f.annualSalary,
+      round(f.benefitsRate),
+    ]),
+    state.company.expenses.map((e, i) => [
+      packName(e.name, seed.company.expenses[i]?.name),
+      e.monthlyCost,
+    ]),
+    SCENARIO_ORDER.map((id) => packScenario(state.scenarios[id], seed.scenarios[id])),
   ]
 }
 
-function toBase64Url(json: string): string {
-  const bytes = new TextEncoder().encode(json)
+function toBase64Url(bytes: Uint8Array): string {
   let binary = ''
   for (const byte of bytes) binary += String.fromCharCode(byte)
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-function fromBase64Url(token: string): string {
+function fromBase64Url(token: string): Uint8Array {
   const padded = token.replace(/-/g, '+').replace(/_/g, '/')
   const binary = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4))
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
-  return new TextDecoder().decode(bytes)
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0))
 }
 
-export function encodePlan(state: AppState): string {
-  return toBase64Url(JSON.stringify(packPlan(state)))
+async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream('deflate-raw'))
+  return new Uint8Array(await new Response(stream).arrayBuffer())
+}
+
+async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
+  const stream = new Blob([bytes as BlobPart])
+    .stream()
+    .pipeThrough(new DecompressionStream('deflate-raw'))
+  return new Uint8Array(await new Response(stream).arrayBuffer())
+}
+
+/**
+ * Deflate before base64. JSON of a plan is mostly repeated digits and punctuation,
+ * which compresses by about 60% — and the base64 that follows costs a third of
+ * whatever is left, so the compression is the difference between a link that fits
+ * in a sentence and one that does not.
+ */
+export async function encodePlan(state: AppState): Promise<string> {
+  const json = JSON.stringify(packPlan(state))
+  const bytes = new TextEncoder().encode(json)
+  if (typeof CompressionStream === 'undefined') return RAW + toBase64Url(bytes)
+  try {
+    return DEFLATED + toBase64Url(await deflate(bytes))
+  } catch {
+    return RAW + toBase64Url(bytes)
+  }
 }
 
 /** Rebuilds a state-shaped object from a packed plan, for reviveState to validate. */
@@ -118,17 +179,17 @@ function unpack(packed: unknown): unknown {
         sameTermsForAll: safeRow[3] === 1,
       },
       optionPool: { currentPct: num(poolRow[0]), newPct: num(poolRow[1]) },
-      hires: (Array.isArray(hires) ? hires : []).filter(Array.isArray).map((h) => ({
-        role: text(h[0]),
+      hires: (Array.isArray(hires) ? hires : []).filter(Array.isArray).map((h, i) => ({
+        role: readName(h[0], seed.scenarios[id].hires[i]?.role, ''),
         headcount: num(h[1]),
         annualSalary: num(h[2]),
         startMonth: num(h[3]),
       })),
-      investors: (Array.isArray(investors) ? investors : []).filter(Array.isArray).map((i) => ({
-        name: text(i[0]),
-        investment: num(i[1]),
-        postMoneyCap: num(i[2]),
-        discountRate: num(i[3]),
+      investors: (Array.isArray(investors) ? investors : []).filter(Array.isArray).map((inv, i) => ({
+        name: readName(inv[0], seed.scenarios[id].investors[i]?.name, `Investor ${i + 1}`),
+        investment: num(inv[1]),
+        postMoneyCap: num(inv[2]),
+        discountRate: num(inv[3]),
       })),
     }
   })
@@ -137,14 +198,14 @@ function unpack(packed: unknown): unknown {
     company: {
       payrollLoadRate: num(scalars[0]),
       currentCash: num(scalars[1]),
-      founders: (Array.isArray(founders) ? founders : []).filter(Array.isArray).map((f) => ({
-        name: text(f[0]),
+      founders: (Array.isArray(founders) ? founders : []).filter(Array.isArray).map((f, i) => ({
+        name: readName(f[0], seed.company.founders[i]?.name, `Founder ${i + 1}`),
         equityShare: num(f[1]),
         annualSalary: num(f[2]),
         benefitsRate: num(f[3]),
       })),
-      expenses: (Array.isArray(expenses) ? expenses : []).filter(Array.isArray).map((e) => ({
-        name: text(e[0]),
+      expenses: (Array.isArray(expenses) ? expenses : []).filter(Array.isArray).map((e, i) => ({
+        name: readName(e[0], seed.company.expenses[i]?.name, ''),
         monthlyCost: num(e[1]),
       })),
     },
@@ -161,23 +222,27 @@ export function decodePlanArray(packed: unknown): AppState | null {
 }
 
 /** null when the token is not a plan at all. Anything malformed inside it is repaired. */
-export function decodePlan(token: string): AppState | null {
+export async function decodePlan(token: string): Promise<AppState | null> {
   try {
-    return decodePlanArray(JSON.parse(fromBase64Url(token)))
+    const marker = token.startsWith('~') ? token.slice(0, 2) : ''
+    const payload = fromBase64Url(marker ? token.slice(2) : token)
+    // No marker means a link shared before compression existed.
+    const json = marker === DEFLATED ? await inflate(payload) : payload
+    return decodePlanArray(JSON.parse(new TextDecoder().decode(json)))
   } catch {
     return null
   }
 }
 
 /** The full link, for the copy button. */
-export function planLink(state: AppState): string {
+export async function planLink(state: AppState): Promise<string> {
   const base = `${window.location.origin}${window.location.pathname}`
-  return `${base}#plan=${encodePlan(state)}`
+  return `${base}#plan=${await encodePlan(state)}`
 }
 
 /** Reads a plan out of the current URL, if there is one. */
-export function planFromLocation(): AppState | null {
-  const match = /[#&]plan=([A-Za-z0-9\-_]+)/.exec(window.location.hash)
+export async function planFromLocation(): Promise<AppState | null> {
+  const match = /[#&]plan=(~?[A-Za-z0-9\-_]+)/.exec(window.location.hash)
   return match ? decodePlan(match[1]) : null
 }
 

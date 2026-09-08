@@ -43,16 +43,24 @@ export function useAppState() {
   // but it must not be re-applied on refresh, so the token comes straight back out
   // and the plan it replaced is kept for one undo.
   const [replaced, setReplaced] = useState<AppState | null>(null)
-  const [state, setState] = useState<AppState>(() => {
-    const saved = loadState()
-    const shared = planFromLocation()
-    if (shared) {
+  const [state, setState] = useState<AppState>(() => loadState() ?? defaultState())
+
+  // Decoding a link is async now that the plan is compressed, so it lands a tick
+  // after the first paint rather than before it.
+  useEffect(() => {
+    let cancelled = false
+    void planFromLocation().then((shared) => {
+      if (cancelled || !shared) return
       clearPlanFromLocation()
-      if (saved) setReplaced(saved)
-      return shared
+      setState((current) => {
+        setReplaced(current)
+        return shared
+      })
+    })
+    return () => {
+      cancelled = true
     }
-    return saved ?? defaultState()
-  })
+  }, [])
   // Another tab writing the same key means this tab's copy is stale. Adopting it
   // silently could throw away whatever is being typed here, so the page says so
   // and leaves the choice to reload.
