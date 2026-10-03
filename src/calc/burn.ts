@@ -4,19 +4,22 @@ import type {
   CompanyInputs,
   FounderCost,
   HireCost,
+  OneTimeCostResult,
   ScenarioInputs,
 } from './types'
 
 /**
- * Burn is a step function of the month: founders + operating expenses are flat, and
- * every hire adds a step at its start month. Nothing here multiplies "burn × months" —
- * that is the whole reason the projection is month-by-month.
+ * Burn is a step function of the month: founders + recurring costs are flat, every hire
+ * adds a step at its start month, and a one-time cost is a spike in the one month it is
+ * paid. Nothing here multiplies "burn × months" — that is the whole reason the projection
+ * is month-by-month.
  */
 export interface BurnContext {
   founderMonthlyComp: number
   operatingMonthly: number
   founderCosts: FounderCost[]
   hireCosts: HireCost[]
+  oneTimeCosts: OneTimeCostResult[]
 }
 
 export function buildBurnContext(
@@ -49,11 +52,24 @@ export function buildBurnContext(
     }
   })
 
+  const oneTimeCosts: OneTimeCostResult[] = (company.oneTimeCosts ?? []).map((c) => {
+    const month = positiveInt(c.month)
+    return {
+      id: c.id,
+      name: c.name,
+      amount: nonNegative(c.amount),
+      month,
+      afterTarget: month > scenario.targetRunwayMonths,
+      beyondHorizon: month > horizon,
+    }
+  })
+
   return {
     founderMonthlyComp: sum(founderCosts.map((f) => f.monthlyCost)),
     operatingMonthly: sum(company.expenses.map((e) => nonNegative(e.monthlyCost))),
     founderCosts,
     hireCosts,
+    oneTimeCosts,
   }
 }
 
@@ -76,8 +92,21 @@ export function headcountAtMonth(ctx: BurnContext, month: number): number {
   return total
 }
 
-export function burnAtMonth(ctx: BurnContext, month: number): number {
+/** One-time costs paid in exactly `month`. */
+export function oneTimeAtMonth(ctx: BurnContext, month: number): number {
+  let total = 0
+  for (const c of ctx.oneTimeCosts) if (c.month === month) total += c.amount
+  return total
+}
+
+/** What the company costs to run in `month`, leaving out anything paid only once. */
+export function runRateAtMonth(ctx: BurnContext, month: number): number {
   return ctx.founderMonthlyComp + ctx.operatingMonthly + hireCompAtMonth(ctx, month)
+}
+
+/** Cash out the door in `month`: the run rate plus that month's one-time costs. */
+export function burnAtMonth(ctx: BurnContext, month: number): number {
+  return runRateAtMonth(ctx, month) + oneTimeAtMonth(ctx, month)
 }
 
 /** Inclusive sum of burn over [from, to]. Returns 0 when the window is empty. */
@@ -100,8 +129,9 @@ export function summarizeBurn(
     headcountByMonth.push(headcountAtMonth(ctx, m))
   }
 
-  const currentMonthlyBurn = burnAtMonth(ctx, 1)
-  const burnAtEndOfRunway = burnAtMonth(ctx, target)
+  const currentMonthlyBurn = runRateAtMonth(ctx, 1)
+  const burnAtEndOfRunway = runRateAtMonth(ctx, target)
+  const funded = targetPlusBuffer(scenario)
   const averageMonthlyBurn = burnBetween(ctx, 1, target) / target
 
   return {
@@ -117,10 +147,13 @@ export function summarizeBurn(
       founderComp: ctx.founderMonthlyComp,
       operating: ctx.operatingMonthly,
       hireComp: hireCompAtMonth(ctx, 1),
+      oneTime: oneTimeAtMonth(ctx, 1),
       total: currentMonthlyBurn,
     },
     founderCosts: ctx.founderCosts,
     hireCosts: ctx.hireCosts,
+    oneTimeCosts: ctx.oneTimeCosts,
+    oneTimeFunded: sum(ctx.oneTimeCosts.filter((c) => c.month <= funded).map((c) => c.amount)),
     burnByMonth,
     headcountByMonth,
   }

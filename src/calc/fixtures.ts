@@ -28,6 +28,7 @@ export function company(overrides: Partial<CompanyInputs> = {}): CompanyInputs {
       founder({ id: 'f2', name: 'Founder 2' }),
     ],
     expenses: [],
+    oneTimeCosts: [],
     payrollLoadRate: 0,
     currentCash: 0,
     ...overrides,

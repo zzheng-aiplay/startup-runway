@@ -6,6 +6,7 @@ import type {
   Founder,
   Hire,
   Investor,
+  OneTimeCost,
   OptionPool,
   SafeTerms,
   ScenarioId,
@@ -63,6 +64,15 @@ function readExpense(row: Unknown): ExpenseLine {
   }
 }
 
+function readOneTimeCost(row: Unknown): OneTimeCost {
+  return {
+    id: str(row.id, newId('once')),
+    name: str(row.name, ''),
+    amount: num(row.amount, 0),
+    month: num(row.month, 1),
+  }
+}
+
 function readHire(row: Unknown): Hire {
   return {
     id: str(row.id, newId('hire')),
@@ -89,6 +99,7 @@ function readCompany(value: unknown, seed: CompanyInputs): CompanyInputs {
   return {
     founders: founders.length > 0 ? founders : seed.founders,
     expenses: rows(value.expenses, readExpense) ?? seed.expenses,
+    oneTimeCosts: rows(value.oneTimeCosts, readOneTimeCost) ?? seed.oneTimeCosts,
     payrollLoadRate: num(value.payrollLoadRate, seed.payrollLoadRate),
     currentCash: num(value.currentCash, seed.currentCash),
   }

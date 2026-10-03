@@ -85,7 +85,7 @@ function collectWarnings(r: ModelResults): ModelWarning[] {
       field: 'expenses',
       message: 'Nothing in this plan spends anything yet. Add salaries or costs to see a runway.',
     })
-  } else if (r.burn.currentMonthlyBurn <= 0) {
+  } else if (r.burn.currentMonthlyBurn <= 0 && (r.burn.burnByMonth[0] ?? 0) <= 0) {
     const firstSpend = r.burn.burnByMonth.findIndex((b) => b > 0) + 1
     w.push({
       code: 'zero-burn',

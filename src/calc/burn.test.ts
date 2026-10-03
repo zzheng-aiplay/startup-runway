@@ -151,3 +151,33 @@ describe('burn summary', () => {
     expect(summarizeBurn(ctx, s, 12).hiresInMonthOne).toBe(true)
   })
 })
+
+describe('one-time costs', () => {
+  const once = (amount: number, month: number) => ({ id: `o${month}`, name: 'x', amount, month })
+
+  it('spend in their month only, and stay out of the run rate', () => {
+    const ctx = buildBurnContext(company({ oneTimeCosts: [once(30_000, 1), once(10_000, 6)] }), scenario())
+    expect(burnAtMonth(ctx, 1)).toBe(130_000)
+    expect(burnAtMonth(ctx, 2)).toBe(100_000)
+    expect(burnAtMonth(ctx, 6)).toBe(110_000)
+    const burn = summarizeBurn(ctx, scenario(), 18)
+    expect(burn.currentMonthlyBurn).toBe(100_000)
+    expect(burn.breakdown.oneTime).toBe(30_000)
+    expect(burn.oneTimeFunded).toBe(40_000)
+  })
+
+  it('add to the raise exactly once, and only inside target + buffer', () => {
+    const s = scenario({ targetRunwayMonths: 12, bufferMonths: 3 })
+    const ctx = buildBurnContext(
+      company({ oneTimeCosts: [once(50_000, 4), once(20_000, 14), once(99_000, 16)] }),
+      s,
+    )
+    // 15 months × 100k, plus the two costs that land inside months 1..15.
+    expect(burnBetween(ctx, 1, 15)).toBe(1_570_000)
+    expect(ctx.oneTimeCosts.map((c) => [c.afterTarget, c.beyondHorizon])).toEqual([
+      [false, false],
+      [true, false],
+      [true, true],
+    ])
+  })
+})

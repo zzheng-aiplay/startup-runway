@@ -20,6 +20,7 @@ function fingerprint(s: ReturnType<typeof defaultState>) {
       ...s.company,
       founders: stripIds(s.company.founders),
       expenses: stripIds(s.company.expenses),
+      oneTimeCosts: stripIds(s.company.oneTimeCosts),
     },
     results: (['lean', 'base', 'aggressive'] as const).map((id) => {
       const m = r(id)
@@ -82,6 +83,21 @@ describe('a plan in a link', () => {
 
   it('is url-safe: a format marker, then nothing that transit can mangle', async () => {
     expect(await encodePlan(state)).toMatch(/^~[12][A-Za-z0-9\-_]+$/)
+  })
+
+  it('carries one-time costs, and opens links made before they existed', async () => {
+    const withOnce = {
+      ...state,
+      company: {
+        ...state.company,
+        oneTimeCosts: [{ id: 'o1', name: 'SOC 2 audit', amount: 45_000, month: 5 }],
+      },
+    }
+    const revived = await decodePlan(await encodePlan(withOnce))
+    expect(fingerprint(revived!)).toEqual(fingerprint(withOnce))
+
+    const older = packPlan(withOnce).slice(0, 6)
+    expect(decodePlanArray(older)!.company.oneTimeCosts).toEqual([])
   })
 
   it('is short enough to paste into a sentence', async () => {

@@ -4,6 +4,7 @@ import {
   blankFounder,
   blankHire,
   blankInvestor,
+  blankOneTimeCost,
   defaultState,
 } from '../calc/defaults'
 import { computeModel, summarizeScenarios } from '../calc/model'
@@ -25,6 +26,7 @@ import type {
   Founder,
   Hire,
   Investor,
+  OneTimeCost,
   SafeTerms,
   ScenarioId,
   ScenarioInputs,
@@ -173,6 +175,32 @@ export function useAppState() {
       setState((s) => ({
         ...s,
         company: { ...s.company, expenses: s.company.expenses.filter((e) => e.id !== id) },
+      }))
+
+    // ------------------------------------------------------- one-time costs --
+
+    const updateOneTimeCost = (id: string, patch: Partial<OneTimeCost>) =>
+      setState((s) => ({
+        ...s,
+        company: { ...s.company, oneTimeCosts: replaceById(s.company.oneTimeCosts, id, patch) },
+      }))
+
+    const addOneTimeCost = () =>
+      setState((s) => ({
+        ...s,
+        company: {
+          ...s.company,
+          oneTimeCosts: [...s.company.oneTimeCosts, blankOneTimeCost(1)],
+        },
+      }))
+
+    const removeOneTimeCost = (id: string) =>
+      setState((s) => ({
+        ...s,
+        company: {
+          ...s.company,
+          oneTimeCosts: s.company.oneTimeCosts.filter((c) => c.id !== id),
+        },
       }))
 
     // ----------------------------------------------------------------- hires --
@@ -344,6 +372,9 @@ export function useAppState() {
       updateExpense,
       addExpense,
       removeExpense,
+      updateOneTimeCost,
+      addOneTimeCost,
+      removeOneTimeCost,
       updateHire,
       addHire,
       removeHire,

@@ -3,7 +3,6 @@ import { sum } from '../calc/numbers'
 import { COST_RANGES, COST_RANGE_CAVEAT, costRangeTotal } from '../calc/benchmarks'
 import type { Benchmark, BenchmarkCode } from '../calc/benchmarks'
 import { BurnMath } from '../copy/math'
-import { founderPhrase } from '../copy/people'
 import type { Store } from '../state/store'
 import {
   AddRow,
@@ -27,8 +26,9 @@ import {
   type GlossaryMap,
 } from './primitives'
 
-const FOUNDER_GRID = 'minmax(0,1fr) 92px 176px 92px 20px'
+const FOUNDER_GRID = 'minmax(0,1fr) 92px 20px'
 const EXPENSE_GRID = 'minmax(0,1fr) 176px 20px'
+const ONE_TIME_GRID = 'minmax(0,1fr) 176px 88px 20px'
 
 export function CompanySection({
   store,
@@ -48,22 +48,19 @@ export function CompanySection({
     <Section
       eyebrow="Step 1"
       title="The company"
-      deck={`What ${founderPhrase(company.founders.length)} cost to run each month, and what is in the bank today.`}
+      deck="Who owns the company, what it costs to run, and what is in the bank today. Founder pay sits with the hiring plan in step 2."
     >
       <GroupLabel tip={glossary.founderSplit}>Founders</GroupLabel>
-      <ListBlock minWidth={630}>
+      <ListBlock minWidth={360}>
         <ListHeader
           template={FOUNDER_GRID}
         columns={[
           'Founder',
           { label: 'Split', tip: glossary.founderSplit },
-          { label: 'Salary / yr' },
-          { label: 'Load', tip: glossary.benefitsLoad },
           { label: '', align: 'right' },
         ]}
       />
       {company.founders.map((founder, index) => {
-        const cost = results.burn.founderCosts[index]
         const ownedToday = results.safe.founderRows[index]?.before ?? 0
         return (
           <ListRow key={founder.id} template={FOUNDER_GRID}>
@@ -75,8 +72,7 @@ export function CompanySection({
                 ariaLabel={`Founder ${index + 1} name`}
               />
               <div className="t-echo num truncate">
-                {formatPct(ownedToday, 1)} today
-                {cost && cost.monthlyCost > 0 ? ` · ${formatMoney(cost.monthlyCost)}/mo` : ''}
+                {formatPct(ownedToday, 1)} of the company today
               </div>
             </div>
             <PercentInput
@@ -85,17 +81,6 @@ export function CompanySection({
               invalid={!splitOk}
               digits={1}
               ariaLabel={`${founder.name || `Founder ${index + 1}`} share of founder equity`}
-            />
-            <MoneyInput
-              value={founder.annualSalary}
-              onChange={(annualSalary) => store.updateFounder(founder.id, { annualSalary })}
-              ariaLabel={`${founder.name || `Founder ${index + 1}`} annual salary`}
-            />
-            <PercentInput
-              value={founder.benefitsRate}
-              onChange={(benefitsRate) => store.updateFounder(founder.id, { benefitsRate })}
-              digits={0}
-              ariaLabel={`${founder.name || `Founder ${index + 1}`} benefits load`}
             />
             {company.founders.length > 1 ? (
               <RemoveRow
@@ -139,16 +124,14 @@ export function CompanySection({
         everything today; advisor or angel shares from before this round are not modelled.
       </p>
       <Warnings warnings={results.warnings} field="founders" />
-      <Typical benchmark={typical.founderPay} show={showBenchmarks} />
-      <ListFooter>
-        <span className="num">
-          {company.founders.length} founder{company.founders.length === 1 ? '' : 's'} ·{' '}
-          {formatMoney(results.burn.founderMonthlyComp)} / mo
-        </span>
-      </ListFooter>
 
       <div className="mt-7">
-        <GroupLabel>Monthly costs</GroupLabel>
+        <GroupLabel>Recurring costs, at steady state</GroupLabel>
+        <p className="t-caption mb-2 max-w-[62ch]">
+          Enter what each line costs a month once the team in your plan is fully built. It is
+          charged at that rate from month 1, so the early months are overstated — the safe
+          direction for a raise.
+        </p>
         <ListBlock minWidth={420}>
           <ListHeader template={EXPENSE_GRID} columns={['Cost', '$ / month', { label: '' }]} />
         {company.expenses.map((expense, index) => (
@@ -195,6 +178,64 @@ export function CompanySection({
             <p className="t-small mt-2 max-w-[62ch]">{COST_RANGE_CAVEAT}</p>
           </Disclosure>
         )}
+      </div>
+
+      <div className="mt-7">
+        <GroupLabel>One-time costs</GroupLabel>
+        <p className="t-caption mb-2 max-w-[62ch]">
+          Paid once, in the month you enter: a SOC 2 audit, recruiting fees, laptops, legal
+          setup. They count toward the raise but not toward the monthly burn rate.
+        </p>
+        <ListBlock minWidth={460}>
+          <ListHeader
+            template={ONE_TIME_GRID}
+            columns={['Cost', 'Amount', 'Month', { label: '' }]}
+          />
+          {company.oneTimeCosts.map((cost, index) => {
+            const result = results.burn.oneTimeCosts[index]
+            const label = cost.name || `one-time cost ${index + 1}`
+            return (
+              <ListRow key={cost.id} template={ONE_TIME_GRID}>
+                <div className="min-w-0">
+                  <TextField
+                    value={cost.name}
+                    onChange={(name) => store.updateOneTimeCost(cost.id, { name })}
+                    placeholder="SOC 2 audit"
+                    ariaLabel={`One-time cost ${index + 1} name`}
+                  />
+                  {result?.beyondHorizon ? (
+                    <div className="t-echo num truncate">past this plan · not funded</div>
+                  ) : result?.afterTarget ? (
+                    <div className="t-echo num truncate">buffer only</div>
+                  ) : null}
+                </div>
+                <MoneyInput
+                  value={cost.amount}
+                  onChange={(amount) => store.updateOneTimeCost(cost.id, { amount })}
+                  ariaLabel={`${label} amount`}
+                />
+                <IntInput
+                  value={cost.month}
+                  onChange={(month) => store.updateOneTimeCost(cost.id, { month })}
+                  min={1}
+                  max={60}
+                  prefix="M"
+                  width={88}
+                  ariaLabel={`${label} month`}
+                />
+                <RemoveRow label={label} onClick={() => store.removeOneTimeCost(cost.id)} />
+              </ListRow>
+            )
+          })}
+          <AddRow label="Add one-time cost" onClick={store.addOneTimeCost} />
+        </ListBlock>
+        <ListFooter>
+          <span className="num">
+            {company.oneTimeCosts.length === 0
+              ? 'None yet'
+              : `${company.oneTimeCosts.length} line${company.oneTimeCosts.length === 1 ? '' : 's'} · ${formatMoney(results.burn.oneTimeFunded)} inside this plan`}
+          </span>
+        </ListFooter>
       </div>
 
       <div className="mt-7">

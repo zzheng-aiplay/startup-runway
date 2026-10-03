@@ -4,6 +4,7 @@ import type { Store } from '../state/store'
 import {
   AddRow,
   Field,
+  GroupLabel,
   IntInput,
   ListBlock,
   ListFooter,
@@ -20,6 +21,7 @@ import {
 } from './primitives'
 
 const HIRE_GRID = 'minmax(0,1fr) 64px 176px 88px 20px'
+const FOUNDER_PAY_GRID = 'minmax(0,1fr) 176px 92px'
 
 export function HiringSection({
   store,
@@ -34,109 +36,159 @@ export function HiringSection({
   const hires = results.burn.hireCosts
   const totalHireCost = hires.reduce((acc, h) => acc + h.monthlyCost, 0)
   const heads = hires.reduce((acc, h) => acc + h.headcount, 0)
+  const { founders } = state.company
 
   return (
     <Section
       eyebrow="Step 2"
-      title="Who you plan to hire"
-      deck="Every hire raises burn from their start month onward. This is why the raise is a month-by-month sum rather than today's burn multiplied out."
+      title="Who you pay"
+      deck="The founders from month 1, then every hire from their start month onward. This is why the raise is a month-by-month sum rather than today's burn multiplied out."
     >
-      <Field
-        label="Payroll load on new hires"
-        tip={glossary.payrollLoad}
-        echo={<span className="t-echo">taxes, benefits, tooling</span>}
-      >
-        <PercentInput
-          value={state.company.payrollLoadRate}
-          onChange={(payrollLoadRate) => store.patchCompany({ payrollLoadRate })}
-          digits={0}
-          ariaLabel="Payroll load on new hires"
-        />
-      </Field>
-      <Typical benchmark={typical.payrollLoad} show={showBenchmarks} />
-
-      <div className="mt-4">
-        <ListBlock minWidth={600}>
-          <ListHeader
-          template={HIRE_GRID}
+      <GroupLabel>Founders</GroupLabel>
+      <ListBlock minWidth={420}>
+        <ListHeader
+          template={FOUNDER_PAY_GRID}
           columns={[
-            'Role',
-            'People',
+            'Founder',
             { label: 'Salary / yr' },
-            { label: 'Starts', tip: glossary.hireStartMonth },
-            { label: '' },
+            { label: 'Load', tip: glossary.benefitsLoad },
           ]}
         />
-        {scenario.hires.map((hire, index) => {
-          const cost = hires[index]
+        {founders.map((founder, index) => {
+          const cost = results.burn.founderCosts[index]
+          const name = founder.name || `Founder ${index + 1}`
           return (
-            <ListRow key={hire.id} template={HIRE_GRID}>
+            <ListRow key={founder.id} template={FOUNDER_PAY_GRID}>
               <div className="min-w-0">
-                <TextField
-                  value={hire.role}
-                  onChange={(role) => store.updateHire(hire.id, { role })}
-                  placeholder="Founding Engineer"
-                  ariaLabel={`Hire ${index + 1} role`}
-                />
+                <div className="t-td truncate">{name}</div>
                 <div className="t-echo num truncate">
                   {cost && cost.monthlyCost > 0
-                    ? `${formatMoney(cost.monthlyCost)}/mo loaded from M${cost.startMonth}`
-                    : 'no cost yet'}
-                  {cost?.beyondHorizon
-                    ? ' · past this plan'
-                    : cost?.afterTarget
-                      ? ' · buffer only'
-                      : ''}
+                    ? `${formatMoney(cost.monthlyCost)}/mo loaded from M1`
+                    : 'unpaid'}
                 </div>
               </div>
-              <IntInput
-                value={hire.headcount}
-                onChange={(headcount) => store.updateHire(hire.id, { headcount })}
-                min={1}
-                max={99}
-                prefix="×"
-                width={64}
-                ariaLabel={`${hire.role || `Hire ${index + 1}`} headcount`}
-              />
               <MoneyInput
-                value={hire.annualSalary}
-                onChange={(annualSalary) => store.updateHire(hire.id, { annualSalary })}
-                ariaLabel={`${hire.role || `Hire ${index + 1}`} annual salary`}
+                value={founder.annualSalary}
+                onChange={(annualSalary) => store.updateFounder(founder.id, { annualSalary })}
+                ariaLabel={`${name} annual salary`}
               />
-              <IntInput
-                value={hire.startMonth}
-                onChange={(startMonth) => store.updateHire(hire.id, { startMonth })}
-                min={1}
-                max={60}
-                prefix="M"
-                width={88}
-                ariaLabel={`${hire.role || `Hire ${index + 1}`} start month`}
-              />
-              <RemoveRow
-                label={hire.role || `hire ${index + 1}`}
-                onClick={() => store.removeHire(hire.id)}
+              <PercentInput
+                value={founder.benefitsRate}
+                onChange={(benefitsRate) => store.updateFounder(founder.id, { benefitsRate })}
+                digits={0}
+                ariaLabel={`${name} benefits load`}
               />
             </ListRow>
           )
         })}
-          <AddRow label="Add hire" onClick={store.addHire} />
-        </ListBlock>
+      </ListBlock>
+      <ListFooter>
+        <span className="num">
+          {founders.length} founder{founders.length === 1 ? '' : 's'} ·{' '}
+          {formatMoney(results.burn.founderMonthlyComp)} / mo · the same in every scenario
+        </span>
+      </ListFooter>
+      <Typical benchmark={typical.founderPay} show={showBenchmarks} />
 
-        <ListFooter>
-          {scenario.hires.length === 0 ? (
-            <span className="num">
-              No hires in this scenario — burn stays flat at{' '}
-              {formatMoney(results.burn.currentMonthlyBurn)} / mo
-            </span>
-          ) : (
-            <span className="num">
-              {heads} {heads === 1 ? 'person' : 'people'} · {formatMoney(totalHireCost)} / mo once
-              everyone has started
-            </span>
-          )}
-        </ListFooter>
-        <Warnings warnings={results.warnings} field="hires" />
-        <Typical benchmark={typical.firstHire} show={showBenchmarks} />
+      <div className="mt-7">
+        <GroupLabel>Hires</GroupLabel>
+        <Field
+          label="Payroll load on new hires"
+          tip={glossary.payrollLoad}
+          echo={<span className="t-echo">taxes, benefits, tooling</span>}
+        >
+          <PercentInput
+            value={state.company.payrollLoadRate}
+            onChange={(payrollLoadRate) => store.patchCompany({ payrollLoadRate })}
+            digits={0}
+            ariaLabel="Payroll load on new hires"
+          />
+        </Field>
+        <Typical benchmark={typical.payrollLoad} show={showBenchmarks} />
+
+        <div className="mt-4">
+          <ListBlock minWidth={600}>
+            <ListHeader
+            template={HIRE_GRID}
+            columns={[
+              'Role',
+              'People',
+              { label: 'Salary / yr' },
+              { label: 'Starts', tip: glossary.hireStartMonth },
+              { label: '' },
+            ]}
+          />
+          {scenario.hires.map((hire, index) => {
+            const cost = hires[index]
+            return (
+              <ListRow key={hire.id} template={HIRE_GRID}>
+                <div className="min-w-0">
+                  <TextField
+                    value={hire.role}
+                    onChange={(role) => store.updateHire(hire.id, { role })}
+                    placeholder="Founding Engineer"
+                    ariaLabel={`Hire ${index + 1} role`}
+                  />
+                  <div className="t-echo num truncate">
+                    {cost && cost.monthlyCost > 0
+                      ? `${formatMoney(cost.monthlyCost)}/mo loaded from M${cost.startMonth}`
+                      : 'no cost yet'}
+                    {cost?.beyondHorizon
+                      ? ' · past this plan'
+                      : cost?.afterTarget
+                        ? ' · buffer only'
+                        : ''}
+                  </div>
+                </div>
+                <IntInput
+                  value={hire.headcount}
+                  onChange={(headcount) => store.updateHire(hire.id, { headcount })}
+                  min={1}
+                  max={99}
+                  prefix="×"
+                  width={64}
+                  ariaLabel={`${hire.role || `Hire ${index + 1}`} headcount`}
+                />
+                <MoneyInput
+                  value={hire.annualSalary}
+                  onChange={(annualSalary) => store.updateHire(hire.id, { annualSalary })}
+                  ariaLabel={`${hire.role || `Hire ${index + 1}`} annual salary`}
+                />
+                <IntInput
+                  value={hire.startMonth}
+                  onChange={(startMonth) => store.updateHire(hire.id, { startMonth })}
+                  min={1}
+                  max={60}
+                  prefix="M"
+                  width={88}
+                  ariaLabel={`${hire.role || `Hire ${index + 1}`} start month`}
+                />
+                <RemoveRow
+                  label={hire.role || `hire ${index + 1}`}
+                  onClick={() => store.removeHire(hire.id)}
+                />
+              </ListRow>
+            )
+          })}
+            <AddRow label="Add hire" onClick={store.addHire} />
+          </ListBlock>
+
+          <ListFooter>
+            {scenario.hires.length === 0 ? (
+              <span className="num">
+                No hires in this scenario — burn stays flat at{' '}
+                {formatMoney(results.burn.currentMonthlyBurn)} / mo
+              </span>
+            ) : (
+              <span className="num">
+                {heads} {heads === 1 ? 'person' : 'people'} · {formatMoney(totalHireCost)} / mo once
+                everyone has started
+              </span>
+            )}
+          </ListFooter>
+          <Warnings warnings={results.warnings} field="hires" />
+          <Typical benchmark={typical.firstHire} show={showBenchmarks} />
+        </div>
       </div>
     </Section>
   )

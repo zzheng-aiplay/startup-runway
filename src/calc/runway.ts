@@ -2,6 +2,7 @@ import {
   burnAtMonth,
   headcountAtMonth,
   hireCompAtMonth,
+  oneTimeAtMonth,
   targetPlusBuffer,
   type BurnContext,
 } from './burn'
@@ -109,7 +110,8 @@ export function buildProjection(
 
   for (let m = 1; m <= horizon; m++) {
     const hireComp = hireCompAtMonth(ctx, m)
-    const burn = ctx.founderMonthlyComp + ctx.operatingMonthly + hireComp
+    const oneTime = oneTimeAtMonth(ctx, m)
+    const burn = burnAtMonth(ctx, m)
     withRaise -= burn
     withoutRaise -= burn
     points.push({
@@ -118,6 +120,8 @@ export function buildProjection(
       founderComp: ctx.founderMonthlyComp,
       operating: ctx.operatingMonthly,
       hireComp,
+      oneTime,
+      nonPayroll: ctx.operatingMonthly + oneTime,
       cashWithRaise: withRaise,
       cashWithoutRaise: withoutRaise,
       headcount: headcountAtMonth(ctx, m),
