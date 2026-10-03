@@ -18,8 +18,8 @@ export function BurnMath({ results }: { results: ModelResults }) {
   return (
     <Disclosure label="Show the burn math" openLabel="Hide the burn math">
       <Formula
-        plain={`Burn is what ${founderPhrase(burn.founderCosts.length)} are paid, plus benefits on top, plus the bills — and then anyone you have hired by that month.`}
-        symbolic="burn(month) = founder pay + benefits + operating costs + hires already started"
+        plain={`Burn is what ${founderPhrase(burn.founderCosts.length)} are paid, plus benefits on top, plus the recurring bills — and then anyone you have hired by that month. One-time costs are paid on top, in their month, and are left out of the burn rate.`}
+        symbolic="burn(month) = founder pay + benefits + recurring costs + hires already started"
         substituted={
           <>
             burn(1) = <Sub>{formatMoney(burn.founderMonthlyComp)}</Sub> {' + '}
@@ -34,6 +34,25 @@ export function BurnMath({ results }: { results: ModelResults }) {
         }
         result={`${formatMoney(burn.currentMonthlyBurn)} in month 1`}
       />
+      {burn.oneTimeCosts.some((c) => c.amount > 0) && (
+        <Formula
+          plain="One-time costs land in a single month. They add to the cash the plan needs, but not to the monthly burn rate."
+          symbolic="cash spent(month) = burn(month) + one-time costs paid that month"
+          substituted={
+            <>
+              {burn.oneTimeCosts
+                .filter((c) => c.amount > 0)
+                .map((c) => (
+                  <div key={c.id}>
+                    {c.name || 'One-time cost'}: <Sub>{formatMoney(c.amount)}</Sub> in month {c.month}
+                    {c.beyondHorizon ? ' (past this plan)' : ''}
+                  </div>
+                ))}
+            </>
+          }
+          result={`${formatMoney(burn.oneTimeFunded)} inside this plan`}
+        />
+      )}
       <Formula
         plain={`Each founder's salary carries their own benefits rate. Hires carry one company-wide payroll load of ${formatPct(load, 0)}.`}
         symbolic="monthly cost = annual salary ÷ 12 × (1 + load)"

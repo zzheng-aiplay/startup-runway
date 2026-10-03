@@ -38,7 +38,8 @@ const LABELLED_HIRES = 4
 const SERIES = [
   { key: 'founderComp', label: 'Founder pay', color: COLORS.expenseFounders },
   { key: 'hireComp', label: 'Hires', color: COLORS.expenseHires },
-  { key: 'operating', label: 'Everything else', color: COLORS.expenseOperating },
+  // Recurring + one-time costs: a one-time line shows as a one-month spike here.
+  { key: 'nonPayroll', label: 'Everything else', color: COLORS.expenseOperating },
 ] as const
 
 function KeyItem({ color, label }: { color: string; label: string }) {

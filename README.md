@@ -46,9 +46,16 @@ where month 1 is the first month after the money lands.
 
 ```
 burn(m) = Σ founder salary/12 × (1 + their benefits)
-        + Σ operating costs
+        + Σ recurring costs, at their steady-state rate
         + Σ hires whose start month ≤ m, at salary/12 × headcount × (1 + payroll load)
+        + Σ one-time costs paid in month m
 ```
+
+Recurring costs are entered at **steady state** — what each line costs once the team is built —
+and charged flat from month 1, which overstates the early months on purpose. One-time costs (SOC 2,
+recruiting fees, hardware) land in a single month: they count toward the raise and the runway, but
+the burn *rate* on the cards leaves them out. Founder pay is entered in the hiring step, next to
+the hires, but is company-wide: the same in every scenario.
 
 **The recommended raise** is a month-by-month sum, never `burn × months`:
 

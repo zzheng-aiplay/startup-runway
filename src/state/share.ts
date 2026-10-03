@@ -108,6 +108,9 @@ export function packPlan(state: AppState): Packed {
       e.monthlyCost,
     ]),
     SCENARIO_ORDER.map((id) => packScenario(state.scenarios[id], seed.scenarios[id])),
+    // Appended rather than slotted in, so links from before one-time costs existed
+    // still decode under the same FORMAT — they simply have none.
+    state.company.oneTimeCosts.map((c) => [c.name, c.amount, c.month]),
   ]
 }
 
@@ -155,7 +158,7 @@ export async function encodePlan(state: AppState): Promise<string> {
 /** Rebuilds a state-shaped object from a packed plan, for reviveState to validate. */
 function unpack(packed: unknown): unknown {
   if (!Array.isArray(packed) || packed[0] !== FORMAT) return null
-  const [, activeIndex, companyScalars, founders, expenses, scenarios] = packed
+  const [, activeIndex, companyScalars, founders, expenses, scenarios, oneTimeCosts] = packed
   const seed = defaultState()
 
   const scalars = Array.isArray(companyScalars) ? companyScalars : []
@@ -208,6 +211,13 @@ function unpack(packed: unknown): unknown {
         name: readName(e[0], seed.company.expenses[i]?.name, ''),
         monthlyCost: num(e[1]),
       })),
+      oneTimeCosts: (Array.isArray(oneTimeCosts) ? oneTimeCosts : [])
+        .filter(Array.isArray)
+        .map((c) => ({
+          name: readName(c[0], undefined, ''),
+          amount: num(c[1]),
+          month: num(c[2]),
+        })),
     },
     scenarios: revivedScenarios,
     activeScenario:

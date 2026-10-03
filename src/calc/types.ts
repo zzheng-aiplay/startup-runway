@@ -27,10 +27,24 @@ export interface Founder {
   benefitsRate: number
 }
 
+/**
+ * A recurring cost, entered at its steady-state monthly rate — what the line costs once the
+ * team in this plan is fully built. It is charged flat from month 1, which overstates the
+ * early months: the conservative direction for a raise.
+ */
 export interface ExpenseLine {
   id: string
   name: string
   monthlyCost: number
+}
+
+/** A cost paid once, in one month: SOC 2, recruiting fees, hardware, incorporation. */
+export interface OneTimeCost {
+  id: string
+  name: string
+  amount: number
+  /** 1-indexed month the cost is paid. Integer >= 1. */
+  month: number
 }
 
 export interface Hire {
@@ -72,6 +86,7 @@ export interface SafeTerms {
 export interface CompanyInputs {
   founders: Founder[]
   expenses: ExpenseLine[]
+  oneTimeCosts: OneTimeCost[]
   /** Benefits + payroll tax multiplier applied to non-founder hires. */
   payrollLoadRate: number
   currentCash: number
@@ -154,6 +169,8 @@ export interface BurnBreakdown {
   founderComp: number
   operating: number
   hireComp: number
+  /** One-time costs paid in month 1. Not part of `total`, which is the run rate. */
+  oneTime: number
   total: number
 }
 
@@ -180,16 +197,31 @@ export interface HireCost {
   beyondHorizon: boolean
 }
 
+export interface OneTimeCostResult {
+  id: string
+  name: string
+  amount: number
+  month: number
+  /** month > targetRunwayMonths — only the buffer pays for this one. */
+  afterTarget: boolean
+  /** month > targetRunwayMonths + bufferMonths — outside the funded horizon. */
+  beyondHorizon: boolean
+}
+
 export interface BurnResults {
   /** Fully loaded founder comp per month (constant in this model). */
   founderMonthlyComp: number
   /** Sum of the operating expense lines (constant in this model). */
   operatingMonthly: number
-  /** Burn in month 1. */
+  /**
+   * Run-rate burn in month 1: founders + recurring costs + hires. One-time costs are
+   * left out of every run-rate figure — a SOC 2 audit in month 1 is not what the
+   * company costs to run — but they are in burnByMonth, the raise and the runway.
+   */
   currentMonthlyBurn: number
-  /** Mean of burn over months 1..targetRunwayMonths. */
+  /** Mean of cash spent over months 1..targetRunwayMonths, one-time costs included. */
   averageMonthlyBurn: number
-  /** Burn in the final month of the target runway. */
+  /** Run-rate burn in the final month of the target runway. */
   burnAtEndOfRunway: number
   /** currentMonthlyBurn -> burnAtEndOfRunway as a growth rate. 0 when flat. */
   burnGrowthOverRunway: number
@@ -198,7 +230,10 @@ export interface BurnResults {
   breakdown: BurnBreakdown
   founderCosts: FounderCost[]
   hireCosts: HireCost[]
-  /** Burn for months 1..horizon. Index 0 === month 1. */
+  oneTimeCosts: OneTimeCostResult[]
+  /** One-time costs paid within target + buffer — the ones this raise funds. */
+  oneTimeFunded: number
+  /** Cash spent in months 1..horizon, one-time costs included. Index 0 === month 1. */
   burnByMonth: number[]
   /** Non-founder headcount by month. Index 0 === month 1. */
   headcountByMonth: number[]
@@ -239,6 +274,9 @@ export interface MonthPoint {
   founderComp: number
   operating: number
   hireComp: number
+  oneTime: number
+  /** Recurring costs + one-time costs: the chart's "everything else". */
+  nonPayroll: number
   /** Cash at the END of this month, having raised the planned amount at month 0. */
   cashWithRaise: number
   /** Cash at the END of this month with no raise at all. */

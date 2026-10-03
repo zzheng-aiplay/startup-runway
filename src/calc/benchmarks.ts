@@ -104,7 +104,7 @@ export function benchmarks(r: ModelResults): Record<BenchmarkCode, Benchmark> {
       code: 'founderPay',
       typical:
         'US founder pay averaged $118,000 in 2026, but it tracks team size closely: about $75,000 under five people, $112,000 at six to ten. Roughly one founder in eleven still pays themselves nothing.',
-      note: 'Add the payroll load on top — that is a separate 25 – 35% (see the hiring step).',
+      note: 'The Load column adds taxes and benefits on top — usually 25 – 35%.',
       source:
         'Pilot Founder Salary Report 2026 (1,600+ founders, July 2026): $118,000 average, up from $98,000 in 2025; $158,000 in San Francisco, $122,000 in New York, $96,000 in Texas; 9.1% take $0. Kruze client payroll, September 2026, puts seed-stage CEOs higher at $153,000 — that data only sees founders who are on payroll at all.',
       yours: clause([

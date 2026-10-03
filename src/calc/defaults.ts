@@ -4,6 +4,7 @@ import type {
   Founder,
   Hire,
   Investor,
+  OneTimeCost,
   ScenarioId,
   ScenarioInputs,
 } from './types'
@@ -105,6 +106,9 @@ export function defaultState(): AppState {
     company: {
       founders: founders.map((f) => ({ ...f })),
       expenses: expenses.map((e) => ({ ...e })),
+      // Empty on purpose: the seeded raises are tuned to the recurring burn, and a
+      // one-time line here would open the page on a shortfall.
+      oneTimeCosts: [],
       payrollLoadRate: 0.25,
       currentCash: 0,
     },
@@ -149,6 +153,10 @@ export const SCENARIO_ORDER: ScenarioId[] = ['lean', 'base', 'aggressive']
 /** Blank rows for the add buttons. */
 export function blankExpense(): ExpenseLine {
   return { id: newId('exp'), name: '', monthlyCost: 0 }
+}
+
+export function blankOneTimeCost(month: number): OneTimeCost {
+  return { id: newId('once'), name: '', amount: 0, month }
 }
 
 export function blankHire(startMonth: number): Hire {
